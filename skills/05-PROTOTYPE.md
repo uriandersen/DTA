@@ -74,6 +74,21 @@ These are information requirements, not permission to dump eight questions at on
 
 The exact wording may adapt to the prototype type. A service situation, customer journey, film, physical mock-up and digital prototype should not be interrogated as if they were the same medium.
 
+## Test duration and prototype scope
+Before the prototype brief is finalised, DTA must know how much time the group has with each test participant. If the test duration is not already in project context, ask for it as one of the clarification questions.
+
+Use this priority:
+
+**Test duration → learning objective → prototype scope**
+
+The prototype is not a representation of the whole product or service. It is the smallest coherent experience that lets the group test the concrete learning objective.
+
+For a short concept test, prioritise the few decisive moments that let the participant understand and react to the concept. Do not include flows, branches, features or states merely because they exist in the concept.
+
+As a practical default, a 20–30 minute concept test should normally use about **3–5 central screens / states / moments**. This is a heuristic, not a fixed rule; the learning objective determines the final scope.
+
+A prototype simulates the experience needed for the test. It does not need to implement the real mechanism behind that experience. For example, time passing, notifications, automation, integrations or system intelligence may be simulated through explicit demo/test controls when that is sufficient for learning.
+
 ## Prototype form
 Do not assume the prototype should be digital.
 

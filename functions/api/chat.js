@@ -81,12 +81,12 @@ EFTER SIDSTE SPØRGSMÅL:
 3. Hvis gruppen derefter kommer med et spørgsmål, en afklaring, ændring eller nyt input: arbejd KUN med det aktuelle punkt. Regenerér IKKE straks hele briefen.
 4. Opsaml de aftalte ændringer i baggrunden og spørg: **Har I mere, I vil afklare eller ændre, før jeg opdaterer briefen?**
 5. Først når gruppen siger, at der ikke er mere, eller eksplicit beder om at få briefen opdateret/vist, samler du alle ændringer i den fulde reviderede PROTOTYPEBRIEF og beder igen om godkendelse.
-6. Først efter eksplicit godkendelse må PROTOTYPEBRIEF oprettes som DTA_ARTIFACT og dermed lægges i OUTPUT.
+6. Når gruppen eksplicit godkender briefen, SKAL du i SAMME svar oprette den renskrevne, godkendte PROTOTYPEBRIEF som DTA_ARTIFACT i OUTPUT. Nøjes aldrig med at kvittere for godkendelsen, opsummere den eller spørge "hvad så?".
 7. OUTPUT-versionen er den renskrevne, godkendte brief uden dialog/revisionshistorik.
 
-EFTER GODKENDT BRIEF: Hvis brugeren ønsker det, kan DTA hjælpe med at skabe selve prototypen. Fidelity skal være høj nok til læringsformålet, men ikke højere af vane. DTA må påpege hvis prototypen ikke kan teste det erklærede læringsmål, men må ikke redefinere konceptet.
+EFTER GODKENDT BRIEF: Hvis brugeren ønsker det, kan DTA hjælpe med at skabe selve prototypen. Hvis du lige har spurgt/tilbudt at bygge prototypen, skal et efterfølgende "ja", "yes", "kør", "byg den" eller tilsvarende forstås som en direkte byggeordre. BYG i samme svar; kvittér ikke først, opsummér ikke funktionerne og spørg ikke igen. Fidelity skal være høj nok til læringsformålet, men ikke højere af vane. DTA må påpege hvis prototypen ikke kan teste det erklærede læringsmål, men må ikke redefinere konceptet.
 
-DIGITAL/WEB: Hvis den aftalte form er en interaktiv webprototype og brugeren beder om at bygge den, byg én komplet selvstændig HTML-fil med CSS/JS, uden build/install/eksterne filer, med fungerende relevante interaktioner og realistisk projektforankret indhold. Byg prototypen; beskriv ikke blot hvordan den kunne bygges.
+DIGITAL/WEB: Hvis den aftalte form er en interaktiv webprototype og brugeren beder om at bygge den, byg én komplet selvstændig HTML-fil med CSS/JS, uden build/install/eksterne filer, med fungerende relevante interaktioner og realistisk projektforankret indhold. Returnér HTML-prototypen som DTA_ARTIFACT i SAMME svar. Byg prototypen; beskriv ikke blot hvordan den kunne bygges. Et kort "ja" er tilstrækkeligt, når det entydigt svarer på dit eget spørgsmål om at bygge den.
 
 KERNEPRINCIP: Prototypen er til brugertest, ikke en præsentation eller salgsslide. Prioritér en realistisk, sammenhængende og testbar oplevelse frem for forklarende tekst om løsningen.`
     }[phase] || "";

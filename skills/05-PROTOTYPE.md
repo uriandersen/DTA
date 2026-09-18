@@ -87,7 +87,13 @@ For a short concept test, prioritise the few decisive moments that let the parti
 
 As a practical default, a 20–30 minute concept test should normally use about **3–5 central screens / states / moments**. This is a heuristic, not a fixed rule; the learning objective determines the final scope.
 
-A prototype simulates the experience needed for the test. It does not need to implement the real mechanism behind that experience. For example, time passing, notifications, automation, integrations or system intelligence may be simulated through explicit demo/test controls when that is sufficient for learning.
+For digital/interface prototypes, the **3–5 selected screens/states must be part of the PROTOTYPEBRIEF itself**. Define each screen at concept level: what moment in the experience it represents, what the participant needs to encounter, and the essential action/choice. Do not specify every field, status, branch, component or technical state. The brief should function like a small design sprint: **learning objective → 3–5 decisive experience moments → build → test**.
+
+A prototype is not a miniature product. Do not translate the full concept or feature list into screens. Select only the moments necessary to test the learning objective.
+
+A prototype simulates the experience needed for the test. It does not need to implement the real mechanism behind that experience. For example, time passing, notifications, automation, integrations or system intelligence may be simulated through demo/test controls when that is sufficient for learning.
+
+Facilitator navigation is allowed and often necessary in a demo prototype. Controls such as **Nu / Senere / Efter tidspunktet**, reset, jumps or shortcuts may be used so the test leader can drive the experience. Keep facilitator controls visually distinct from the product experience. Do not put explanatory test instructions inside the product UI. The participant should encounter plausible product/service content, not instructions explaining how the prototype works.
 
 ## Prototype form
 Do not assume the prototype should be digital.

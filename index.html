@@ -49,4 +49,4 @@ function selectPhase(el){document.querySelectorAll('.phase').forEach(x=>x.classL
 function togglePhase(el){el.classList.toggle('open');const b=el.querySelector('.phase-toggle');if(b)b.textContent=el.classList.contains('open')?'⌃':'⌄'}
 function addPhaseItem(button){const row=document.createElement('div');row.className='resource';row.innerHTML='<span class="icon">◇</span><div style="flex:1"><b contenteditable="true">Ny metode / skill</b><div class="meta" contenteditable="true">Klik for at redigere</div></div><button class="remove" onclick="this.parentElement.remove()">×</button>';button.parentElement.insertBefore(row,button)}
 function rightTab(id,b){document.getElementById('output').classList.toggle('hidden',id!=='output');document.getElementById('saved').classList.toggle('on',id==='saved');b.parentElement.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on')}
-</script></body></html>
+</script><script src="app.js"></script></body></html>

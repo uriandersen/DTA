@@ -8,10 +8,10 @@ HMW is a specialised skill DTA can use when the user asks for help formulating a
 ## Course definition
 The course structure is:
 
-**How might we help [PERSONA / USER] with [ACTION / DIRECTION], so that [VALUE / NEED]?**
+Render an HMW in exactly three lines, with the fixed course words in bold:\n\n**Hvordan kan vi hjælpe** [PERSONA / BRUGER]\n**med** [HANDLING / RETNING]\n**således at** [VÆRDI / BEHOV]?\n\nDo not collapse it into one line. Keep it concise. The HMW must carry forward the central insight/problem understanding developed by the group and be sharper than the original case challenge.
 
 ## When activated
-Retrieve the relevant existing project context first, especially an accepted POV if the group has created one.
+Retrieve the relevant existing project context first, especially an accepted POV if the group has created one. If the group asks to work on, formulate or see an HMW, give a concrete proposal directly in the three-line course syntax above.
 
 Do not require a POV if the user is working from an equivalent clearly defined user need and insight, but do not invent missing research.
 

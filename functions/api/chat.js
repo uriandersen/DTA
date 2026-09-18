@@ -25,7 +25,7 @@ For en digital prototype, webside eller anden HTML-leverance skal du BYGGE den k
 {"title":"kort titel","type":"html","filename":"kort-filnavn","content":"<!doctype html>...komplet selvstændig HTML med CSS og JavaScript..."}
 </DTA_ARTIFACT>
 HTML skal være én selvstændig fil uden build-trin. Når brugeren beder om en prototype eller fil, må du ikke sige, at du ikke kan oprette en separat/downloadbar artefakt, og du må ikke nøjes med en kodeblok. DTA-klienten gør HTML-artefaktet previewbart og downloadbart.
-Skriv kun én artefaktblok pr. svar.`;
+Skriv kun én artefaktblok pr. svar. DTA_ARTIFACT er en intern transportprotokol: den må aldrig forklares, gengives i almindelig chattekst eller pakkes i Markdown-kodehegn. JSON skal være gyldig JSON; alle linjeskift og citationstegn inde i content skal escapes korrekt.`;
     const payload={model,reasoning:{effort:"medium"},instructions,input:[...history,{role:"user",content:body.message}],max_output_tokens:8000};
     const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json","authorization":`Bearer ${key}`},body:JSON.stringify(payload)});
     const data=await r.json();
@@ -38,14 +38,21 @@ Skriv kun én artefaktblok pr. svar.`;
     if(start!==-1){
       const jsonStart=start+"<DTA_ARTIFACT>".length;
       const jsonEnd=end!==-1?end:raw.length;
-      const block=raw.slice(jsonStart,jsonEnd).trim();
-      try{artifact=JSON.parse(block);artifact.phase=phase;text=(raw.slice(0,start)+(end!==-1?raw.slice(end+"</DTA_ARTIFACT>".length):"")).trim()}
+      let block=raw.slice(jsonStart,jsonEnd).trim();
+      if(block.startsWith("```")) block=block.replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/,"");
+      try{artifact=JSON.parse(block)}
       catch{
-        const type=/"type"\s*:\s*"html"/.test(block)?"html":"markdown";
-        const title=(block.match(/"title"\s*:\s*"([^"]+)"/)||[])[1]||"Output";
-        const filename=(block.match(/"filename"\s*:\s*"([^"]+)"/)||[])[1];
-        const cm=block.match(/"content"\s*:\s*"([\s\S]*)"\s*}\s*$/);
-        if(cm){let content=cm[1].replace(/\\n/g,"\n").replace(/\\r/g,"\r").replace(/\\t/g,"\t").replace(/\\"/g,'"').replace(/\\\\/g,"\\");artifact={title,type,filename,content,phase};text=raw.slice(0,start).trim()}
+        try{
+          const first=block.indexOf("{"), last=block.lastIndexOf("}");
+          if(first!==-1&&last>first) artifact=JSON.parse(block.slice(first,last+1));
+        }catch{}
+      }
+      if(artifact){
+        artifact.phase=phase;
+        text=(raw.slice(0,start)+(end!==-1?raw.slice(end+"</DTA_ARTIFACT>".length):"")).trim();
+      } else {
+        // Never leak protocol/HTML into chat if artifact parsing fails.
+        text=raw.slice(0,start).trim()||"Artefaktet blev genereret, men kunne ikke indlæses korrekt. Prøv igen.";
       }
     }
     return json({text:text|| (artifact?"Output oprettet.":"Intet tekstsvar modtaget."),artifact,response_id:data.id,model:data.model});

@@ -14,19 +14,36 @@ window.addEventListener('DOMContentLoaded',()=>{
  const addBtn=$('#materials .add');
  const materialInput=document.createElement('input');materialInput.type='file';materialInput.multiple=true;materialInput.hidden=true;document.body.appendChild(materialInput);
  addBtn.onclick=()=>materialInput.click();
- function persist(){save({materials:[...document.querySelectorAll('#materials .material b')].map(x=>x.textContent)})}
- function addMaterial(name){
-  const el=document.createElement('div');el.className='material';
-  el.innerHTML='<div class="file"><b></b><small>Projektmateriale</small></div><button class="remove">×</button>';
-  el.querySelector('b').textContent=name; el.querySelector('.remove').onclick=()=>{el.remove();persist()};
+ let materials=(st.materials||[]).map(x=>typeof x==='string'?{name:x}:x);
+ function persist(){save({materials})}
+ function addMaterial(item){
+  const el=document.createElement('div');el.className='material';el.dataset.name=item.name;
+  el.innerHTML='<div class="file"><b></b><small></small></div><button class="remove">×</button>';
+  el.querySelector('b').textContent=item.name;
+  el.querySelector('small').textContent=item.fileId?'Klar i DTA-kontekst':'Skal uploades igen';
+  el.querySelector('.remove').onclick=()=>{materials=materials.filter(x=>x!==item);el.remove();persist()};
   addBtn.parentElement.insertBefore(el,addBtn);
  }
- materialInput.onchange=e=>{[...e.target.files].forEach(f=>addMaterial(f.name));persist();toast('Tilføjet til Materiale')};
- if(st.materials){document.querySelectorAll('#materials .material').forEach(x=>x.remove());st.materials.forEach(addMaterial)}
- document.querySelectorAll('#materials .remove').forEach(b=>b.onclick=()=>{b.parentElement.remove();persist()});
+ async function uploadMaterial(file){
+  const fd=new FormData();fd.append('file',file,file.name);
+  const r=await fetch('/api/materials',{method:'POST',body:fd});
+  const data=await r.json();if(!r.ok)throw new Error(data.error||'Upload-fejl');
+  const item={name:file.name,fileId:data.file_id,mime:file.type||'',bytes:file.size};
+  materials.push(item);addMaterial(item);persist();return item;
+ }
+ async function handleFiles(files,showChat=false){
+  for(const f of files){
+   try{
+    const item=await uploadMaterial(f);
+    if(showChat){const m=document.createElement('div');m.className='msg ai';m.innerHTML='<div class="upload-card">▣ &nbsp;<b></b>&nbsp; · tilføjet til Materiale og DTA-kontekst</div>';m.querySelector('b').textContent=item.name;$('.chat').appendChild(m)}
+   }catch(err){toast('Kunne ikke uploade '+f.name);console.error(err)}
+  }
+ }
+ materialInput.onchange=async e=>{await handleFiles([...e.target.files]);toast('Tilføjet til Materiale')};
+ document.querySelectorAll('#materials .material').forEach(x=>x.remove());materials.forEach(addMaterial);
  const attach=$('.attach'), chatInput=document.createElement('input');chatInput.type='file';chatInput.multiple=true;chatInput.hidden=true;document.body.appendChild(chatInput);
  attach.onclick=()=>chatInput.click();
- chatInput.onchange=e=>{[...e.target.files].forEach(f=>{addMaterial(f.name);const m=document.createElement('div');m.className='msg ai';m.innerHTML='<div class="upload-card">▣ &nbsp;<b></b>&nbsp; · tilføjet til Materiale</div>';m.querySelector('b').textContent=f.name;$('.chat').appendChild(m)});persist();toast('Upload tilføjet til Materiale')};
+ chatInput.onchange=async e=>{await handleFiles([...e.target.files],true);toast('Upload tilføjet til Materiale')};
  function htmlBlob(artifact){return new Blob([artifact.content],{type:'text/html;charset=utf-8'})}
  function htmlName(artifact){let n=(artifact.filename||artifact.title||'prototype').toLowerCase().replace(/[^a-z0-9æøå]+/gi,'-').replace(/^-|-$/g,'');return (n||'prototype')+'.html'}
  function previewHtml(artifact){const url=URL.createObjectURL(htmlBlob(artifact));window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000)}
@@ -58,7 +75,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   const v=ta.value.trim();if(!v)return;const c=$('.chat');const m=document.createElement('div');m.className='msg user';m.textContent=v;c.appendChild(m);ta.value='';const h=getState().messages||[];h.push({role:'user',text:v});save({messages:h});c.scrollTop=c.scrollHeight;
   activeController=new AbortController();send.innerHTML='<span class="stop-square">■</span>';send.setAttribute('aria-label','Stop');send.classList.add('stop');
   const wait=document.createElement('div');wait.className='msg ai';wait.innerHTML='<span class="thinking" aria-label="DTA arbejder"><i></i><i></i><i></i></span>';c.appendChild(wait);
-  try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:getState().materials||[],savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(data.text)+'</div>';h.push({role:'assistant',text:data.text,phase});save({messages:h});if(data.artifact)renderArtifact(data.artifact);}
+  try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:materials,savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(data.text)+'</div>';h.push({role:'assistant',text:data.text,phase});save({messages:h});if(data.artifact)renderArtifact(data.artifact);}
   catch(err){if(err.name==='AbortError'){wait.remove();toast('Stoppet')}else{wait.textContent='DTA kunne ikke svare endnu: '+err.message}}
   finally{activeController=null;send.innerHTML='<span class="send-arrow">➜</span>';send.setAttribute('aria-label','Send');send.classList.remove('stop');c.scrollTop=c.scrollHeight}
  };

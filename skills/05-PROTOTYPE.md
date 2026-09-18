@@ -85,9 +85,11 @@ The prototype is not a representation of the whole product or service. It is the
 
 For a short concept test, prioritise the few decisive moments that let the participant understand and react to the concept. Do not include flows, branches, features or states merely because they exist in the concept.
 
-As a practical default, a 20–30 minute concept test should normally use about **3–5 central screens / states / moments**. This is a heuristic, not a fixed rule; the learning objective determines the final scope.
+As a practical default, a 20–30 minute concept test should normally focus on about **3–5 decisive testable elements / moments**. This is a heuristic, not a fixed rule; the learning objective determines the final scope.
 
-For digital/interface prototypes, the **3–5 selected screens/states must be part of the PROTOTYPEBRIEF itself**. Define each screen at concept level: what moment in the experience it represents, what the participant needs to encounter, and the essential action/choice. Do not specify every field, status, branch, component or technical state. The brief should function like a small design sprint: **learning objective → 3–5 decisive experience moments → build → test**.
+First choose the prototype form from the learning objective. Only then translate the 3–5 elements/moments into the form that makes sense for that prototype. For a digital interface these may be screens/states; for a service, touchpoints/scenes; for a physical product, models/features/use situations; for food or another sensory concept, concrete variants/attributes/experiences; for music, selected musical pieces/sections/directions; for communication, selected executions or touchpoints. Do not force screen logic onto non-digital concepts.
+
+The **3–5 selected testable elements/moments must be part of the PROTOTYPEBRIEF itself**, described at concept level: what is being tested, what the participant encounters, and what reaction/action/choice matters. Do not over-specify implementation details. The brief should function like a small design sprint: **learning objective → test duration → prototype form → 3–5 decisive testable elements/moments → build → test**.
 
 A prototype is not a miniature product. Do not translate the full concept or feature list into screens. Select only the moments necessary to test the learning objective.
 

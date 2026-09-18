@@ -42,7 +42,7 @@ Samme skill som i EMPATHIZE:
 
 2) POV
 Dette er en tilgængelig specialkompetence, IKKE et obligatorisk workflow. Aktivér den når brugeren beder om hjælp til POV.
-- Hent først eksisterende persona/brugertype, findings/temaer og valgt behov/indsigt hvis de findes.
+- Hent først eksisterende persona/brugertype, personens/personaens navn, findings/temaer og valgt behov/indsigt hvis de findes. En POV skal tage udgangspunkt i en navngiven person/persona. Hvis navnet ikke findes i projektkonteksten, spørg hvad personen/personaen hedder, før POV formuleres.
 - Kursusstruktur: [PERSONA/BRUGER] har behov for [BEHOV], fordi [INDSIGT].
 - POV skal være researchforankret, have et menneskeligt behov, give retning men holde løsningen åben.
 - Opfind ikke persona, behov eller indsigt. Fortsæt ikke automatisk til HMW.

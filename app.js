@@ -56,11 +56,11 @@ window.addEventListener('DOMContentLoaded',()=>{
  send.onclick=async()=>{
   if(activeController){activeController.abort();return}
   const v=ta.value.trim();if(!v)return;const c=$('.chat');const m=document.createElement('div');m.className='msg user';m.textContent=v;c.appendChild(m);ta.value='';const h=getState().messages||[];h.push({role:'user',text:v});save({messages:h});c.scrollTop=c.scrollHeight;
-  activeController=new AbortController();send.textContent='■';send.setAttribute('aria-label','Stop');send.classList.add('stop');
+  activeController=new AbortController();send.innerHTML='<span class="stop-square">■</span>';send.setAttribute('aria-label','Stop');send.classList.add('stop');
   const wait=document.createElement('div');wait.className='msg ai';wait.innerHTML='<span class="thinking" aria-label="DTA arbejder"><i></i><i></i><i></i></span>';c.appendChild(wait);
   try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:getState().materials||[],savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(data.text)+'</div>';h.push({role:'assistant',text:data.text,phase});save({messages:h});if(data.artifact)renderArtifact(data.artifact);}
   catch(err){if(err.name==='AbortError'){wait.remove();toast('Stoppet')}else{wait.textContent='DTA kunne ikke svare endnu: '+err.message}}
-  finally{activeController=null;send.textContent='→';send.setAttribute('aria-label','Send');send.classList.remove('stop');c.scrollTop=c.scrollHeight}
+  finally{activeController=null;send.innerHTML='<span class="send-arrow">➜</span>';send.setAttribute('aria-label','Send');send.classList.remove('stop');c.scrollTop=c.scrollHeight}
  };
  function escapeHtml(v){const d=document.createElement('div');d.textContent=v;return d.innerHTML}
  function renderMarkdown(v){

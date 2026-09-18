@@ -8,15 +8,15 @@ POV is a specialised skill DTA can use when the user asks for help with a Point 
 ## Course definition
 A POV connects a real user/persona, a need and an insight:
 
-Render a POV in exactly three lines, with the fixed course words in bold:\n\n**[PERSONA / USER] har behov for** [BEHOV]\n**fordi**\n[INDSIGT]\n\nDo not collapse it into one line. Keep it concise. The insight must remain the central insight developed by the group; do not broaden the POV back into the original case challenge.
+Render a POV in exactly three lines, with the fixed course words in bold:\n\n**[NAVN] har behov for** [BEHOV]\n**fordi**\n[INDSIGT]\n\nDo not collapse it into one line. Keep it concise. The insight must remain the central insight developed by the group; do not broaden the POV back into the original case challenge.
 
 ## When activated
 Retrieve relevant existing project context first:
-- persona / user type
+- persona / user type and the person/persona name
 - interview findings and themes
 - selected need / insight, if already chosen
 
-Do not ask the user to repeat information already present.
+Do not ask the user to repeat information already present. A POV must use a named person/persona. If no name is available in project context, ask what the person/persona is called before formulating the POV.
 
 If the group asks to work on, formulate or see a POV, give a concrete proposal directly in the three-line course syntax above. If the group has not selected the need or insight, help them work with the available research, but do not silently choose a different direction for them.
 

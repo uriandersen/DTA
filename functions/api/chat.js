@@ -11,13 +11,24 @@ export async function onRequestPost(context) {
       PROTOTYPE:"Omsæt gruppens allerede valgte koncept til noget testbart. Redefinér ikke konceptet uden ønske. Spørg kun efter afgørende manglende information."
     }[phase] || "";
     const history=(body.history||[]).slice(-20).map(x=>({role:x.role==="assistant"?"assistant":"user",content:x.text}));
-    const instructions = `Du er Design Thinking Agent (DTA), en faglig samarbejdspartner gennem et Design Thinking-projekt. Aktuel fase: ${phase}. ${phaseGuide} Vær konkret, kortfattet og arbejd ud fra projektets materiale og tidligere beslutninger. Projekt: ${body.projectName||"Unavngivet"}. Tilgængelige materialefiler (kun filnavne i denne version): ${(body.materials||[]).join(", ")||"ingen"}.`;
+    const saved=(body.savedArtifacts||[]).map(x=>`${x.title||"Artefakt"}: ${x.content||""}`).join("\n\n");
+    const instructions = `Du er Design Thinking Agent (DTA), en faglig samarbejdspartner gennem et Design Thinking-projekt. Aktuel fase: ${phase}. ${phaseGuide} Vær konkret, kortfattet og arbejd ud fra projektets materiale og tidligere beslutninger. Projekt: ${body.projectName||"Unavngivet"}. Tilgængelige materialefiler (kun filnavne i denne version): ${(body.materials||[]).join(", ")||"ingen"}. Aktivt gemte artefakter: ${saved||"ingen"}.
+
+ARTEFAKTER: Når dit svar skaber et selvstændigt arbejdsresultat, som gruppen med rimelighed kan arbejde videre med eller gemme — fx interviewguide, interviewanalyse, temaer, insights, POV, HMW, konceptbeskrivelse, prototypebrief, testplan eller prototype — skal du markere præcis den del som et artefakt. Almindelig dialog, spørgsmål og korte forklaringer er ikke artefakter.
+Når der er et artefakt, afslut svaret med en maskinlæsbar blok på egne linjer:
+<DTA_ARTIFACT>
+{"title":"kort titel","content":"artefaktets fulde indhold i Markdown"}
+</DTA_ARTIFACT>
+Skriv kun én artefaktblok pr. svar.`;
     const payload={model,reasoning:{effort:"medium"},instructions,input:[...history,{role:"user",content:body.message}],max_output_tokens:1800};
     const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json","authorization":`Bearer ${key}`},body:JSON.stringify(payload)});
     const data=await r.json();
     if(!r.ok) return json({error:data?.error?.message||"OpenAI API-fejl"},r.status);
-    const text=data.output_text || (data.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text).join("\n");
-    return json({text:text||"Intet tekstsvar modtaget.",response_id:data.id,model:data.model});
+    let text=data.output_text || (data.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text).join("\n");
+    let artifact=null;
+    const match=(text||"").match(/<DTA_ARTIFACT>\s*([\s\S]*?)\s*<\/DTA_ARTIFACT>/);
+    if(match){try{artifact=JSON.parse(match[1]);artifact.phase=phase;text=text.replace(match[0],"").trim()}catch{}}
+    return json({text:text|| (artifact?"Output oprettet.":"Intet tekstsvar modtaget."),artifact,response_id:data.id,model:data.model});
   } catch(e){return json({error:e.message||"Ukendt serverfejl"},500)}
 }
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8"}})}

@@ -90,11 +90,13 @@ KERNEPRINCIP: Prototypen er til brugertest, ikke en præsentation eller salgssli
     }[phase] || "";
     const history=(body.history||[]).slice(-20).map(x=>({role:x.role==="assistant"?"assistant":"user",content:x.text}));
     const saved=(body.savedArtifacts||[]).map(x=>`${x.title||"Artefakt"}: ${x.content||""}`).join("\n\n");
+    const materials=(body.materials||[]).filter(x=>x&&typeof x==="object"&&x.fileId);
+    const materialNames=materials.map(x=>x.name).join(", ");
     const instructions = `Du er Design Thinking Agent (DTA), en faglig samarbejdspartner gennem et Design Thinking-projekt. Aktuel fase: ${phase}. FASEINSTRUKTIONEN NEDENFOR ER EN BINDENDE ARBEJDSREGEL, ikke blot baggrundskontekst. Den styrer hvilke handlinger og artefakter du må udføre i den aktuelle fase. Hvis en brugerbestilling kolliderer med fasens metode, skal du følge faseinstruktionen og hjælpe brugeren metodisk videre i stedet for lydigt at springe processen over.
 
 ${phaseGuide}
 
-Vær konkret, kortfattet og arbejd ud fra projektets materiale og tidligere beslutninger. Projekt: ${body.projectName||"Unavngivet"}. Tilgængelige materialefiler (kun filnavne i denne version): ${(body.materials||[]).join(", ")||"ingen"}. Aktivt gemte artefakter: ${saved||"ingen"}.
+Vær konkret, kortfattet og arbejd ud fra projektets materiale og tidligere beslutninger. Projekt: ${body.projectName||"Unavngivet"}. Projektmateriale tilgængeligt som faktiske fil-inputs: ${materialNames||"ingen"}. Når brugeren beder dig læse, opsummere eller arbejde ud fra materialet, skal du bruge filernes faktiske indhold og ikke bede om gen-upload, hvis filen er tilgængelig her. Aktivt gemte artefakter: ${saved||"ingen"}.
 
 ARTEFAKTER: Når dit svar skaber et selvstændigt arbejdsresultat, som gruppen med rimelighed kan arbejde videre med eller gemme — fx interviewguide, interviewanalyse, temaer, insights, POV, HMW, konceptbeskrivelse, prototypebrief, testplan eller prototype — skal du markere præcis den del som et artefakt. Almindelig dialog, spørgsmål og korte forklaringer er ikke artefakter.
 Når der er et artefakt, afslut svaret med en maskinlæsbar blok på egne linjer.
@@ -108,7 +110,8 @@ For en digital prototype, webside eller anden HTML-leverance skal du BYGGE den k
 </DTA_ARTIFACT>
 HTML skal være én selvstændig fil uden build-trin. Når brugeren beder om en prototype eller fil, må du ikke sige, at du ikke kan oprette en separat/downloadbar artefakt, og du må ikke nøjes med en kodeblok. DTA-klienten gør HTML-artefaktet previewbart og downloadbart.
 Skriv kun én artefaktblok pr. svar. DTA_ARTIFACT er en intern transportprotokol: den må aldrig forklares, gengives i almindelig chattekst eller pakkes i Markdown-kodehegn. JSON skal være gyldig JSON; alle linjeskift og citationstegn inde i content skal escapes korrekt.`;
-    const payload={model,reasoning:{effort:"medium"},instructions,input:[...history,{role:"user",content:body.message}],max_output_tokens:8000};
+    const userContent=[{type:"input_text",text:body.message},...materials.map(x=>({type:"input_file",file_id:x.fileId}))];
+    const payload={model,reasoning:{effort:"medium"},instructions,input:[...history,{role:"user",content:userContent}],max_output_tokens:8000};
     const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json","authorization":`Bearer ${key}`},body:JSON.stringify(payload)});
     const data=await r.json();
     if(!r.ok) return json({error:data?.error?.message||"OpenAI API-fejl"},r.status);

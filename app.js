@@ -27,14 +27,21 @@ window.addEventListener('DOMContentLoaded',()=>{
  const attach=$('.attach'), chatInput=document.createElement('input');chatInput.type='file';chatInput.multiple=true;chatInput.hidden=true;document.body.appendChild(chatInput);
  attach.onclick=()=>chatInput.click();
  chatInput.onchange=e=>{[...e.target.files].forEach(f=>{addMaterial(f.name);const m=document.createElement('div');m.className='msg ai';m.innerHTML='<div class="upload-card">▣ &nbsp;<b></b>&nbsp; · tilføjet til Materiale</div>';m.querySelector('b').textContent=f.name;$('.chat').appendChild(m)});persist();toast('Upload tilføjet til Materiale')};
+ function htmlBlob(artifact){return new Blob([artifact.content],{type:'text/html;charset=utf-8'})}
+ function htmlName(artifact){let n=(artifact.filename||artifact.title||'prototype').toLowerCase().replace(/[^a-z0-9æøå]+/gi,'-').replace(/^-|-$/g,'');return (n||'prototype')+'.html'}
+ function previewHtml(artifact){const url=URL.createObjectURL(htmlBlob(artifact));window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000)}
+ function downloadHtml(artifact){const url=URL.createObjectURL(htmlBlob(artifact)),a=document.createElement('a');a.href=url;a.download=htmlName(artifact);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
  function renderArtifact(artifact){
   if(!artifact||!artifact.content)return;
-  const out=$('#output');
-  out.innerHTML='<div class="artifact"><span class="badge"></span><h2></h2><div class="artifact-body md"></div></div><div class="artifact-actions"><a href="#" data-act="save">GEM</a></div>';
+  const out=$('#output'), isHtml=artifact.type==='html';
+  out.innerHTML='<div class="artifact"><span class="badge"></span><h2></h2><div class="artifact-body"></div></div><div class="artifact-actions"><a href="#" data-act="save">GEM</a>'+(isHtml?'<a href="#" data-act="preview">ÅBN PREVIEW</a><a href="#" data-act="download">DOWNLOAD .HTML</a>':'')+'</div>';
   out.querySelector('.badge').textContent=artifact.phase||'OUTPUT';
   out.querySelector('h2').textContent=artifact.title||'Output';
-  out.querySelector('.artifact-body').innerHTML=renderMarkdown(artifact.content);
+  const body=out.querySelector('.artifact-body');
+  if(isHtml){body.innerHTML='<div class="html-artifact"><b>'+escapeHtml(htmlName(artifact))+'</b><small>Interaktiv HTML-prototype</small></div>'}
+  else{body.classList.add('md');body.innerHTML=renderMarkdown(artifact.content)}
   out.querySelector('[data-act="save"]').onclick=e=>{e.preventDefault();saveArtifact(artifact)};
+  if(isHtml){out.querySelector('[data-act="preview"]').onclick=e=>{e.preventDefault();previewHtml(artifact)};out.querySelector('[data-act="download"]').onclick=e=>{e.preventDefault();downloadHtml(artifact)}}
  }
  function saveArtifact(artifact){
   const st=getState(), saved=st.saved||[];
@@ -42,7 +49,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  }
  function renderSaved(){
   const pane=$('#saved'), saved=getState().saved||[];pane.innerHTML='';
-  saved.forEach((x,i)=>{const e=document.createElement('div');e.className='saved-entry';e.innerHTML='<div class="saved-item"><b></b><small></small></div><div class="saved-actions"><a href="#">BRUG SOM KONTEKST</a></div>';e.querySelector('b').textContent=x.title||'Output';e.querySelector('small').textContent=x.phase||'';e.querySelector('a').onclick=ev=>{ev.preventDefault();const st=getState();const active=st.activeSaved||[];if(!active.includes(i))active.push(i);save({activeSaved:active});toast('Bruges som kontekst')};pane.appendChild(e)});
+  saved.forEach((x,i)=>{const e=document.createElement('div');e.className='saved-entry';const isHtml=x.type==='html';e.innerHTML='<div class="saved-item"><b></b><small></small></div><div class="saved-actions"><a href="#" data-act="context">BRUG SOM KONTEKST</a>'+(isHtml?'<a href="#" data-act="preview">ÅBN PREVIEW</a><a href="#" data-act="download">DOWNLOAD .HTML</a>':'')+'</div>';e.querySelector('b').textContent=x.title||'Output';e.querySelector('small').textContent=isHtml?htmlName(x):(x.phase||'');e.querySelector('[data-act="context"]').onclick=ev=>{ev.preventDefault();const st=getState();const active=st.activeSaved||[];if(!active.includes(i))active.push(i);save({activeSaved:active});toast('Bruges som kontekst')};if(isHtml){e.querySelector('[data-act="preview"]').onclick=ev=>{ev.preventDefault();previewHtml(x)};e.querySelector('[data-act="download"]').onclick=ev=>{ev.preventDefault();downloadHtml(x)}}pane.appendChild(e)});
  }
  renderSaved();
  const send=$('.send'), ta=$('textarea');

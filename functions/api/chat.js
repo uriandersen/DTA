@@ -32,8 +32,22 @@ Skriv kun én artefaktblok pr. svar.`;
     if(!r.ok) return json({error:data?.error?.message||"OpenAI API-fejl"},r.status);
     let text=data.output_text || (data.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text).join("\n");
     let artifact=null;
-    const match=(text||"").match(/<DTA_ARTIFACT>\s*([\s\S]*?)\s*<\/DTA_ARTIFACT>/);
-    if(match){try{artifact=JSON.parse(match[1]);artifact.phase=phase;text=text.replace(match[0],"").trim()}catch{}}
+    const raw=text||"";
+    const start=raw.indexOf("<DTA_ARTIFACT>");
+    const end=raw.lastIndexOf("</DTA_ARTIFACT>");
+    if(start!==-1){
+      const jsonStart=start+"<DTA_ARTIFACT>".length;
+      const jsonEnd=end!==-1?end:raw.length;
+      const block=raw.slice(jsonStart,jsonEnd).trim();
+      try{artifact=JSON.parse(block);artifact.phase=phase;text=(raw.slice(0,start)+(end!==-1?raw.slice(end+"</DTA_ARTIFACT>".length):"")).trim()}
+      catch{
+        const type=/"type"\s*:\s*"html"/.test(block)?"html":"markdown";
+        const title=(block.match(/"title"\s*:\s*"([^"]+)"/)||[])[1]||"Output";
+        const filename=(block.match(/"filename"\s*:\s*"([^"]+)"/)||[])[1];
+        const cm=block.match(/"content"\s*:\s*"([\s\S]*)"\s*}\s*$/);
+        if(cm){let content=cm[1].replace(/\\n/g,"\n").replace(/\\r/g,"\r").replace(/\\t/g,"\t").replace(/\\"/g,'"').replace(/\\\\/g,"\\");artifact={title,type,filename,content,phase};text=raw.slice(0,start).trim()}
+      }
+    }
     return json({text:text|| (artifact?"Output oprettet.":"Intet tekstsvar modtaget."),artifact,response_id:data.id,model:data.model});
   } catch(e){return json({error:e.message||"Ukendt serverfejl"},500)}
 }

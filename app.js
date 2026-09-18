@@ -3,6 +3,13 @@ const GROUP=new URLSearchParams(location.search).get('group')||'1';
 const KEY='dta-group-'+GROUP;
 const GROUP_LABEL='Gruppe '+GROUP;
 const API='/api/chat';
+const RESET=new URLSearchParams(location.search).get('reset')==='1';
+if(RESET){
+  localStorage.removeItem(KEY);
+  const clean=new URL(location.href);
+  clean.searchParams.delete('reset');
+  history.replaceState({},'',clean.pathname+clean.search+clean.hash);
+}
 const $=s=>document.querySelector(s);
 function toast(t){let e=$('#toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;right:24px;bottom:24px;background:#202020;color:#fff;padding:10px 14px;border-radius:5px;font:12px Aptos,Arial;z-index:99';document.body.appendChild(e)}e.textContent=t;setTimeout(()=>e.remove(),1400)}
 function getState(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {}}}

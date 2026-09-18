@@ -76,13 +76,21 @@ window.addEventListener('DOMContentLoaded',()=>{
   saved.forEach((x,i)=>{const e=document.createElement('div');e.className='saved-entry';const isHtml=x.type==='html';e.innerHTML='<div class="saved-item"><b></b><small></small></div><div class="saved-actions"><a href="#" data-act="context">BRUG SOM KONTEKST</a>'+(isHtml?'<a href="#" data-act="preview">ÅBN PREVIEW</a><a href="#" data-act="download">DOWNLOAD .HTML</a>':'')+'</div>';e.querySelector('b').textContent=x.title||'Output';e.querySelector('small').textContent=isHtml?htmlName(x):(x.phase||'');e.querySelector('[data-act="context"]').onclick=ev=>{ev.preventDefault();const st=getState();const active=st.activeSaved||[];if(!active.includes(i))active.push(i);save({activeSaved:active});toast('Bruges som kontekst')};if(isHtml){e.querySelector('[data-act="preview"]').onclick=ev=>{ev.preventDefault();previewHtml(x)};e.querySelector('[data-act="download"]').onclick=ev=>{ev.preventDefault();downloadHtml(x)}}pane.appendChild(e)});
  }
  renderSaved();
- const send=$('.send'), ta=$('textarea'); let activeController=null;
+ const send=$('.send'), ta=$('textarea'), protoProgress=$('.prototype-progress'); let activeController=null;
+ function updatePrototypeProgress(text,phase){
+  if(!protoProgress)return;
+  if(phase!=='PROTOTYPE'){protoProgress.classList.remove('on');return}
+  const match=(text||'').match(/#\s*([1-7])\s*\/\s*7/i);
+  if(!match){protoProgress.classList.remove('on');return}
+  const step=Number(match[1]);protoProgress.classList.add('on');
+  [...protoProgress.children].forEach((el,i)=>el.classList.toggle('done',i<step));
+ }
  send.onclick=async()=>{
   if(activeController){activeController.abort();return}
   const v=ta.value.trim();if(!v)return;const c=$('.chat');const m=document.createElement('div');m.className='msg user';m.textContent=v;c.appendChild(m);ta.value='';const h=getState().messages||[];h.push({role:'user',text:v});save({messages:h});c.scrollTop=c.scrollHeight;
   activeController=new AbortController();send.innerHTML='<span class="stop-square">■</span>';send.setAttribute('aria-label','Stop');send.classList.add('stop');
   const wait=document.createElement('div');wait.className='msg ai';wait.innerHTML='<span class="thinking" aria-label="DTA arbejder"><i></i><i></i><i></i></span>';c.appendChild(wait);
-  try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:materials,savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(data.text)+'</div>';h.push({role:'assistant',text:data.text,phase});save({messages:h});if(data.artifact)renderArtifact(data.artifact);}
+  try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:materials,savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');updatePrototypeProgress(data.text,phase);const cleanText=phase==='PROTOTYPE'?data.text.replace(/\*\*?#\s*[1-7]\s*\/\s*7\*\*?\s*/g,'').replace(/#\s*[1-7]\s*\/\s*7\s*/g,''):data.text;wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(cleanText)+'</div>';h.push({role:'assistant',text:data.text,phase});save({messages:h});if(data.artifact)renderArtifact(data.artifact);}
   catch(err){if(err.name==='AbortError'){wait.remove();toast('Stoppet')}else{wait.textContent='DTA kunne ikke svare endnu: '+err.message}}
   finally{activeController=null;send.innerHTML='<span class="send-arrow">➜</span>';send.setAttribute('aria-label','Send');send.classList.remove('stop');c.scrollTop=c.scrollHeight}
  };

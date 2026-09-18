@@ -47,7 +47,7 @@ button,input,textarea{font:inherit}.app{max-width:1440px;height:calc(100vh - 48p
 <div class="left-view" id="materials"><button class="add">＋ Tilføj materiale</button><div class="hint">Materiale kan også uploades direkte i chatten.</div></div>
 </aside>
 <main class="col center"><div class="chat"></div><div class="composer"><div class="inputbox"><textarea placeholder="Skriv til DTA…"></textarea><div class="composer-row"><button class="attach">＋ Upload</button><button class="send" aria-label="Send"><span class="send-arrow">➜</span></button></div></div></div></main>
-<aside class="col right"><div class="right-tabs"><button class="tab on" onclick="rightTab('output',this)">▣ &nbsp;OUTPUT</button><button class="tab" onclick="rightTab('saved',this)">◆ &nbsp;GEMT</button></div><div class="right-content"><div class="outputpane" id="output"></div><div class="saved" id="saved"></div></div></aside>
+<aside class="col right"><div class="right-tabs"><button class="tab on" onclick="rightTab('output',this)">⚡ &nbsp;OUTPUT</button><button class="tab" onclick="rightTab('saved',this)">⇥ &nbsp;GEMT</button></div><div class="right-content"><div class="outputpane" id="output"></div><div class="saved" id="saved"></div></div></aside>
 </div></div>
 <script>
 function leftTab(id,b){document.querySelectorAll('.left-view').forEach(x=>x.classList.remove('on'));document.getElementById(id).classList.add('on');b.parentElement.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on')}

@@ -27,8 +27,26 @@ window.addEventListener('DOMContentLoaded',()=>{
  const attach=$('.attach'), chatInput=document.createElement('input');chatInput.type='file';chatInput.multiple=true;chatInput.hidden=true;document.body.appendChild(chatInput);
  attach.onclick=()=>chatInput.click();
  chatInput.onchange=e=>{[...e.target.files].forEach(f=>{addMaterial(f.name);const m=document.createElement('div');m.className='msg ai';m.innerHTML='<div class="upload-card">▣ &nbsp;<b></b>&nbsp; · tilføjet til Materiale</div>';m.querySelector('b').textContent=f.name;$('.chat').appendChild(m)});persist();toast('Upload tilføjet til Materiale')};
+ function renderArtifact(artifact){
+  if(!artifact||!artifact.content)return;
+  const out=$('#output');
+  out.innerHTML='<div class="artifact"><span class="badge"></span><h2></h2><div class="artifact-body md"></div></div><div class="artifact-actions"><a href="#" data-act="save">GEM</a></div>';
+  out.querySelector('.badge').textContent=artifact.phase||'OUTPUT';
+  out.querySelector('h2').textContent=artifact.title||'Output';
+  out.querySelector('.artifact-body').innerHTML=renderMarkdown(artifact.content);
+  out.querySelector('[data-act="save"]').onclick=e=>{e.preventDefault();saveArtifact(artifact)};
+ }
+ function saveArtifact(artifact){
+  const st=getState(), saved=st.saved||[];
+  saved.unshift({...artifact,savedAt:Date.now()});save({saved});renderSaved();toast('Gemt');
+ }
+ function renderSaved(){
+  const pane=$('#saved'), saved=getState().saved||[];pane.innerHTML='';
+  saved.forEach((x,i)=>{const e=document.createElement('div');e.className='saved-entry';e.innerHTML='<div class="saved-item"><b></b><small></small></div><div class="saved-actions"><a href="#">BRUG SOM KONTEKST</a></div>';e.querySelector('b').textContent=x.title||'Output';e.querySelector('small').textContent=x.phase||'';e.querySelector('a').onclick=ev=>{ev.preventDefault();const st=getState();const active=st.activeSaved||[];if(!active.includes(i))active.push(i);save({activeSaved:active});toast('Bruges som kontekst')};pane.appendChild(e)});
+ }
+ renderSaved();
  const send=$('.send'), ta=$('textarea');
- send.onclick=async()=>{const v=ta.value.trim();if(!v)return;const c=$('.chat');const m=document.createElement('div');m.className='msg user';m.textContent=v;c.appendChild(m);ta.value='';const h=getState().messages||[];h.push({role:'user',text:v});save({messages:h});c.scrollTop=c.scrollHeight;send.disabled=true;const wait=document.createElement('div');wait.className='msg ai';wait.innerHTML='<span class="thinking" aria-label="DTA arbejder"><i></i><i></i><i></i></span>';c.appendChild(wait);try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:getState().materials||[]})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(data.text)+'</div>';h.push({role:'assistant',text:data.text,phase});save({messages:h});}catch(err){wait.textContent='DTA kunne ikke svare endnu: '+err.message}finally{send.disabled=false;c.scrollTop=c.scrollHeight}};
+ send.onclick=async()=>{const v=ta.value.trim();if(!v)return;const c=$('.chat');const m=document.createElement('div');m.className='msg user';m.textContent=v;c.appendChild(m);ta.value='';const h=getState().messages||[];h.push({role:'user',text:v});save({messages:h});c.scrollTop=c.scrollHeight;send.disabled=true;const wait=document.createElement('div');wait.className='msg ai';wait.innerHTML='<span class="thinking" aria-label="DTA arbejder"><i></i><i></i><i></i></span>';c.appendChild(wait);try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:getState().materials||[],savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(data.text)+'</div>';h.push({role:'assistant',text:data.text,phase});save({messages:h});if(data.artifact)renderArtifact(data.artifact);}catch(err){wait.textContent='DTA kunne ikke svare endnu: '+err.message}finally{send.disabled=false;c.scrollTop=c.scrollHeight}};
  function escapeHtml(v){const d=document.createElement('div');d.textContent=v;return d.innerHTML}
  function renderMarkdown(v){
   let x=escapeHtml(v||'').replace(/\r\n?/g,'\n');

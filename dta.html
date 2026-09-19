@@ -7,7 +7,7 @@
 <style>
 :root{--ink:#202020;--muted:#57534e;--line:#d4cfc7;--paper:#fff;--soft:#f0ede7}
 *{box-sizing:border-box}
-html,body{height:100%}body{margin:0;background:#f3f1ed;font-family:Aptos,"Segoe UI",Arial,sans-serif;color:var(--ink);overflow:hidden}
+html,body{height:100%}body{margin:0;background:#f3f1ed;font-family:Aptos,"Segoe UI",Arial,sans-serif;color:var(--ink);overflow:hidden;position:relative}.site-copyright{position:fixed;left:max(24px,calc((100vw - 1440px)/2 + 64px));bottom:6px;font-size:10px;line-height:1.45;color:#57534e;font-weight:700;pointer-events:none}
 button,input,textarea{font:inherit}.app{max-width:1440px;height:calc(100vh - 48px);margin:24px auto;background:white;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 36px rgba(55,48,40,.12)}
 .header{display:grid;grid-template-columns:280px minmax(520px,1fr) 390px;background:#fff}.header>div{padding:20px 24px}
 .logo{position:relative;display:inline-block;font-size:22px;font-weight:900;letter-spacing:-.045em;color:#171717;line-height:.88;text-transform:uppercase}.logo:before{content:"";position:absolute;top:0;bottom:0;left:-12px;width:5px;background:#171717}.logo span{display:block}
@@ -48,7 +48,7 @@ button,input,textarea{font:inherit}.app{max-width:1440px;height:calc(100vh - 48p
 </aside>
 <main class="col center"><div class="chat"></div><div class="composer"><div class="prototype-progress" aria-label="Prototype progression"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="inputbox"><textarea placeholder="Skriv til DTA…"></textarea><div class="composer-row"><button class="attach">＋ Upload</button><button class="send" aria-label="Send"><span class="send-arrow">➜</span></button></div></div></div></main>
 <aside class="col right"><div class="right-tabs"><button class="tab on" onclick="rightTab('output',this)"><span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4Z"/><path d="m4 12 8 4 8-4"/><path d="m4 17 8 4 8-4"/></svg></span>OUTPUT</button><button class="tab" onclick="rightTab('saved',this)"><span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg></span>GEMT</button></div><div class="right-content"><div class="outputpane" id="output"></div><div class="saved" id="saved"></div></div></aside>
-</div></div>
+</div></div><div class="site-copyright">© 2026 Uri Andersen. All rights reserved.</div>
 <script>
 function leftTab(id,b){document.querySelectorAll('.left-view').forEach(x=>x.classList.remove('on'));document.getElementById(id).classList.add('on');b.parentElement.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on')}
 function selectPhase(el){document.querySelectorAll('.phase').forEach(x=>x.classList.remove('active'));el.classList.add('active')}

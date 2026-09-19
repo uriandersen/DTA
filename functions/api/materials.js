@@ -1,5 +1,7 @@
+import {gate} from "./_auth.js";
 export async function onRequestPost(context) {
   try {
+    const access=await gate(context); if(!access.ok) return json({error:access.error},403);
     const key=context.env.OPENAI_API_KEY;
     if(!key) return json({error:"OPENAI_API_KEY mangler i Cloudflare"},500);
     const incoming=await context.request.formData();

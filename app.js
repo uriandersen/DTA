@@ -58,14 +58,17 @@ window.addEventListener('DOMContentLoaded',()=>{
  function renderArtifact(artifact){
   if(!artifact||!artifact.content)return;
   const out=$('#output'), isHtml=artifact.type==='html';
-  out.innerHTML='<div class="artifact"><span class="badge"></span><h2></h2><div class="artifact-body"></div></div><div class="artifact-actions"><a href="#" data-act="save">GEM</a>'+(isHtml?'<a href="#" data-act="preview">ÅBN PREVIEW</a><a href="#" data-act="download">DOWNLOAD .HTML</a>':'')+'<a href="#" data-act="remove">FJERN</a></div>';
-  out.querySelector('.badge').textContent=artifact.phase||'OUTPUT';
-  out.querySelector('h2').textContent=artifact.title||'Output';
-  const body=out.querySelector('.artifact-body');
+  const entry=document.createElement('div');entry.className='output-entry';
+  entry.innerHTML='<div class="artifact"><span class="badge"></span><h2></h2><div class="artifact-body"></div></div><div class="artifact-actions"><a href="#" data-act="save">GEM</a>'+(isHtml?'<a href="#" data-act="preview">ÅBN PREVIEW</a><a href="#" data-act="download">DOWNLOAD .HTML</a>':'')+'<a href="#" data-act="remove">FJERN</a></div>';
+  entry.querySelector('.badge').textContent=artifact.phase||'OUTPUT';
+  entry.querySelector('h2').textContent=artifact.title||'Output';
+  const body=entry.querySelector('.artifact-body');
   if(isHtml){body.innerHTML='<div class="html-artifact"><b>'+escapeHtml(htmlName(artifact))+'</b><small>Interaktiv HTML-prototype</small></div>'}
   else{body.classList.add('md');body.innerHTML=renderMarkdown(artifact.content)}
-  out.querySelector('[data-act="save"]').onclick=e=>{e.preventDefault();saveArtifact(artifact)};out.querySelector('[data-act="remove"]').onclick=e=>{e.preventDefault();out.innerHTML='';toast('Fjernet fra Output')};
-  if(isHtml){out.querySelector('[data-act="preview"]').onclick=e=>{e.preventDefault();previewHtml(artifact)};out.querySelector('[data-act="download"]').onclick=e=>{e.preventDefault();downloadHtml(artifact)}}
+  entry.querySelector('[data-act="save"]').onclick=e=>{e.preventDefault();saveArtifact(artifact)};
+  entry.querySelector('[data-act="remove"]').onclick=e=>{e.preventDefault();entry.remove();toast('Fjernet fra Output')};
+  if(isHtml){entry.querySelector('[data-act="preview"]').onclick=e=>{e.preventDefault();previewHtml(artifact)};entry.querySelector('[data-act="download"]').onclick=e=>{e.preventDefault();downloadHtml(artifact)}}
+  out.prepend(entry);
  }
  function saveArtifact(artifact){
   const st=getState(), saved=st.saved||[];

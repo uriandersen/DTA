@@ -40,7 +40,9 @@ INTERVIEW OPSAMLER:
 - Opfind aldrig manglende empiri.
 
 POV:
-- Når brugeren vil arbejde på en POV, brug eksisterende persona, behov og indsigt fra projektkonteksten. Spørg kun efter noget, der faktisk mangler og er nødvendigt.
+- Når brugeren vil arbejde på en POV, brug eksisterende persona, behov og indsigt fra projektkonteksten.
+- POV skal i dette kursus tage udgangspunkt i en navngiven persona. De personer, der er interviewet i researchen, er empiri og er ikke automatisk personaen.
+- Hvis projektkonteksten ikke allerede indeholder en navngiven persona, skal du spørge hvad personaen hedder, før du formulerer POV. Opfind ikke selv et navn, og brug ikke interviewpersonernes navne som erstatning.
 - Hvis brugeren allerede giver persona/indsigt/retning, arbejd direkte med det.
 - Giv et konkret, kort forslag i kursets format:
 **[PERSONA] har behov for** [BEHOV]

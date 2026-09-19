@@ -17,7 +17,13 @@ function save(p){localStorage.setItem(KEY,JSON.stringify({...getState(),...p}))}
 window.addEventListener('DOMContentLoaded',()=>{
  const pn=$('.project-name'), st=getState();
  pn.textContent=(st.projectName||'Design Thinking-projekt')+' · '+GROUP_LABEL;
- pn.removeAttribute('contenteditable');
+ pn.setAttribute('contenteditable','true');
+ pn.setAttribute('spellcheck','false');
+ const projectBase=()=>pn.textContent.split(' · '+GROUP_LABEL)[0].trim();
+ const persistProjectName=()=>{const name=projectBase()||'Design Thinking-projekt';save({projectName:name});pn.textContent=name+' · '+GROUP_LABEL};
+ pn.addEventListener('focus',()=>{pn.textContent=projectBase()});
+ pn.addEventListener('blur',persistProjectName);
+ pn.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();pn.blur()}});
  const addBtn=$('#materials .add');
  const materialInput=document.createElement('input');materialInput.type='file';materialInput.multiple=true;materialInput.hidden=true;document.body.appendChild(materialInput);
  addBtn.onclick=()=>materialInput.click();

@@ -58,7 +58,13 @@ window.addEventListener('DOMContentLoaded',()=>{
  function renderArtifact(artifact){
   if(!artifact||!artifact.content)return;
   const out=$('#output'), isHtml=artifact.type==='html';
+  const isPrototypeBrief=!isHtml&&/prototypebrief/i.test((artifact.title||'')+' '+(artifact.phase||''));
+  if(isPrototypeBrief){
+   const existing=[...out.querySelectorAll('.output-entry')].find(e=>e.dataset.prototypeBrief==='1');
+   if(existing)existing.remove();
+  }
   const entry=document.createElement('div');entry.className='output-entry';
+  if(isPrototypeBrief)entry.dataset.prototypeBrief='1';
   entry.innerHTML='<div class="artifact"><span class="badge"></span><h2></h2><div class="artifact-body"></div></div><div class="artifact-actions"><a href="#" data-act="save">GEM</a>'+(isHtml?'<a href="#" data-act="preview">ÅBN PREVIEW</a><a href="#" data-act="download">DOWNLOAD .HTML</a>':'')+'<a href="#" data-act="remove">FJERN</a></div>';
   entry.querySelector('.badge').textContent=artifact.phase||'OUTPUT';
   entry.querySelector('h2').textContent=artifact.title||'Output';

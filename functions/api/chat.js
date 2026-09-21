@@ -125,7 +125,7 @@ DIGITAL/WEB: Hvis den aftalte form er en interaktiv webprototype og brugeren bed
 
 KERNEPRINCIP: Prototypen er til brugertest, ikke en præsentation eller salgsslide. Prioritér en realistisk, sammenhængende og testbar oplevelse frem for forklarende tekst om løsningen.`
     }[phase] || "";
-    const history=(body.history||[]).slice(-20).map(x=>({role:x.role==="assistant"?"assistant":"user",content:x.text}));
+    const caseContext = `FÆLLES CASEKONTEKST FOR ALLE GRUPPER:\nDesignudfordringen er "Den usynlige gæld". I hverdagen kan nødvendige, ikke-hastende gøremål blive udskudt og hobe sig op som en form for usynlig gæld: fx frakken der skal til rens, lågen der skal ordnes, oprydning på loftet, noget der skal sælges, en tid der skal bestilles eller et abonnement der skal opsiges. Det uløste kan fylde mentalt. Målet er ikke nødvendigvis at få mennesker til at gøre mere, men at få færre løse ender og skabe mere overblik, mental plads og afslutning. Dilemmaerne er, at det enkelte gøremål ofte er lille mens summen kan blive uoverskuelig, og at det som ikke haster er let at udskyde igen og igen.\nDen fælles designudfordring er: "Hvordan kan vi hjælpe mennesker med at nedbringe den usynlige gæld i hverdagen – og skabe mere overblik, mental plads og afslutning?"\nLeverancen er et koncept for en service/tjeneste/app eller lignende, der hjælper mennesker med at nedbringe deres usynlige gæld i hverdagen med særligt fokus på motivation og belønning. Konceptet skal udvikles på basis af brugerinvolvering, afprøves med rigtige brugere, og forslag samt brugerfeedback præsenteres i plenum.\n\nGRUPPEKONTEKST:\nDenne DTA-session tilhører Gruppe ${body.group||"ukendt"}. Behandl gruppenummeret som kendt projektkontekst, også hvis det ikke står i projektets titel eller samtale.`;\n    const history=(body.history||[]).slice(-20).map(x=>({role:x.role==="assistant"?"assistant":"user",content:x.text}));
     const saved=(body.savedArtifacts||[]).map(x=>`${x.title||"Artefakt"}: ${x.content||""}`).join("\n\n");
     const materials=(body.materials||[]).filter(x=>x&&typeof x==="object"&&x.fileId);
     const materialNames=materials.map(x=>x.name).join(", ");
@@ -187,7 +187,7 @@ GLOBAL SAMTALE- OG SPROGSTANDARD:
 - Opfind aldrig fakta, research, citater, behov eller detaljer for at gøre et svar mere komplet eller menneskeligt.
 - Bevar brugerens og projektmaterialets terminologi, når den er klar og brugbar.
 
-Aktuel fase: ${phase}. Faseinstruktionen nedenfor beskriver den aktuelle faglige arbejdsretning og de relevante kompetencer. Brug den som metodekontekst og dømmekraft — ikke som et rigidt workflow eller som grund til at blokere en relevant eksplorativ bevægelse.
+${caseContext}\n\nAktuel fase: ${phase}. Faseinstruktionen nedenfor beskriver den aktuelle faglige arbejdsretning og de relevante kompetencer. Brug den som metodekontekst og dømmekraft — ikke som et rigidt workflow eller som grund til at blokere en relevant eksplorativ bevægelse.
 
 ${phaseGuide}
 

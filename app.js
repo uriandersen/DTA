@@ -62,7 +62,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
  }
  materialInput.onchange=async e=>{await handleFiles([...e.target.files]);toast('Tilføjet til Materiale')};
- document.querySelectorAll('#materials .material').forEach(x=>x.remove());materials.forEach(addMaterial);
+ document.querySelectorAll('#materials .material:not(.preloaded)').forEach(x=>x.remove());materials.forEach(addMaterial);
  const attach=$('.attach'), chatInput=document.createElement('input');chatInput.type='file';chatInput.multiple=true;chatInput.hidden=true;document.body.appendChild(chatInput);
  attach.onclick=()=>chatInput.click();
  chatInput.onchange=async e=>{await handleFiles([...e.target.files],true);toast('Upload tilføjet til Materiale')};

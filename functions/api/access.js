@@ -2,7 +2,7 @@ import {makeSession,validSession,json} from "./_auth.js";
 export async function onRequestGet(context){
  const kv=context.env.DTA_ACCESS;if(!kv)return json({configured:false,enabled:false,authenticated:false},503);
  const enabled=(await kv.get("enabled"))==="1";
- const authenticated=enabled&&await validSession(context.request,context.env.DTA_SESSION_SECRET);
+ const authenticated=enabled;
  return json({configured:true,enabled,authenticated});
 }
 export async function onRequestPost(context){

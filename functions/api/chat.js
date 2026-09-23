@@ -225,7 +225,10 @@ For en digital prototype, webside eller anden HTML-leverance skal du BYGGE den k
 HTML skal være én selvstændig fil uden build-trin. Når brugeren beder om en prototype eller fil, må du ikke sige, at du ikke kan oprette en separat/downloadbar artefakt, og du må ikke nøjes med en kodeblok. DTA-klienten gør HTML-artefaktet previewbart og downloadbart.
 Skriv kun én artefaktblok pr. svar. DTA_ARTIFACT er en intern transportprotokol: den må aldrig forklares, gengives i almindelig chattekst eller pakkes i Markdown-kodehegn. JSON skal være gyldig JSON; alle linjeskift og citationstegn inde i content skal escapes korrekt.`;
     const preloadedContext=lineTranscript?{type:"input_text",text:"PRE-LOADET RÅ INTERVIEWEMPIRI — LINE. Dette er rå kildedata, ikke tidligere analyse. Følg gruppereglerne og brug kun denne gruppes interviewdel.\n\n"+lineTranscript}:null;
-    const imageMaterials=materials.filter(isImageMaterial);\n    const documentMaterials=materials.filter(x=>!isImageMaterial(x));\n    // Images must never enter the context-stuffing input_file path. OpenAI rejects JPG/PNG there.\n    const userContent=[{type:"input_text",text:body.message},...(preloadedContext?[preloadedContext]:[]),...imageMaterials.map(x=>({type:"input_image",file_id:x.fileId})),...documentMaterials.map(x=>({type:"input_file",file_id:x.fileId}))];
+    const imageMaterials=materials.filter(isImageMaterial);
+    const documentMaterials=materials.filter(x=>!isImageMaterial(x));
+    // Images must never enter the context-stuffing input_file path. OpenAI rejects JPG/PNG there.
+    const userContent=[{type:"input_text",text:body.message},...(preloadedContext?[preloadedContext]:[]),...imageMaterials.map(x=>({type:"input_image",file_id:x.fileId})),...documentMaterials.map(x=>({type:"input_file",file_id:x.fileId}))];
     const payload={model,reasoning:{effort:"low"},instructions,input:[...history,{role:"user",content:userContent}],max_output_tokens:8000};
     const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json","authorization":`Bearer ${key}`},body:JSON.stringify(payload)});
     const data=await r.json();

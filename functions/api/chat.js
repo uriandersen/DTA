@@ -140,6 +140,7 @@ KERNEPRINCIP: Prototypen er til brugertest, ikke en præsentation eller salgssli
     const saved=(body.savedArtifacts||[]).map(x=>`${x.title||"Artefakt"}: ${x.content||""}`).join("\n\n");
     const materials=(body.materials||[]).filter(x=>x&&typeof x==="object"&&x.fileId);
     const materialNames=materials.map(x=>x.name).join(", ");
+    const isImageMaterial=x=>x.kind==="image"||/^image\/(jpeg|png)$/i.test(x.mime||"")||/\.(jpe?g|png)$/i.test(x.name||"");
     const instructions = `Du er Design Thinking Agent (DTA), en faglig samarbejdspartner gennem et Design Thinking-projekt.
 
 DTA OPERATING LAYER:
@@ -217,11 +218,14 @@ For en digital prototype, webside eller anden HTML-leverance skal du BYGGE den k
 HTML skal være én selvstændig fil uden build-trin. Når brugeren beder om en prototype eller fil, må du ikke sige, at du ikke kan oprette en separat/downloadbar artefakt, og du må ikke nøjes med en kodeblok. DTA-klienten gør HTML-artefaktet previewbart og downloadbart.
 Skriv kun én artefaktblok pr. svar. DTA_ARTIFACT er en intern transportprotokol: den må aldrig forklares, gengives i almindelig chattekst eller pakkes i Markdown-kodehegn. JSON skal være gyldig JSON; alle linjeskift og citationstegn inde i content skal escapes korrekt.`;
     const preloadedContext=lineTranscript?{type:"input_text",text:"PRE-LOADET RÅ INTERVIEWEMPIRI — LINE. Dette er rå kildedata, ikke tidligere analyse. Følg gruppereglerne og brug kun denne gruppes interviewdel.\n\n"+lineTranscript}:null;
-    const userContent=[{type:"input_text",text:body.message},...(preloadedContext?[preloadedContext]:[]),...materials.map(x=>({type:"input_file",file_id:x.fileId}))];
+    const userContent=[{type:"input_text",text:body.message},...(preloadedContext?[preloadedContext]:[]),...materials.map(x=>isImageMaterial(x)?{type:"input_image",file_id:x.fileId,detail:"auto"}:{type:"input_file",file_id:x.fileId})];
     const payload={model,reasoning:{effort:"low"},instructions,input:[...history,{role:"user",content:userContent}],max_output_tokens:8000};
     const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json","authorization":`Bearer ${key}`},body:JSON.stringify(payload)});
     const data=await r.json();
-    if(!r.ok) return json({error:data?.error?.message||"OpenAI API-fejl"},r.status);
+    if(!r.ok){
+      const msg=data?.error?.message||"OpenAI API-fejl";
+      return json({error:msg,recoverable:true},r.status);
+    }
     let text=data.output_text || (data.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text).join("\n");
     let artifact=null;
     const raw=text||"";

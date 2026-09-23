@@ -1,6 +1,12 @@
 
 const GROUP=new URLSearchParams(location.search).get('group')||'1';
 const KEY='dta-group-'+GROUP;
+const CLEAN_SLATE_VERSION='course-start-2026-09-23';
+const CLEAN_SLATE_KEY='dta-clean-slate-version';
+if(localStorage.getItem(CLEAN_SLATE_KEY)!==CLEAN_SLATE_VERSION){
+  ['1','2','3'].forEach(g=>localStorage.removeItem('dta-group-'+g));
+  localStorage.setItem(CLEAN_SLATE_KEY,CLEAN_SLATE_VERSION);
+}
 const GROUP_LABEL='Gruppe '+GROUP;
 const API='/api/chat';
 const RESET=new URLSearchParams(location.search).get('reset')==='1';
@@ -28,6 +34,12 @@ window.addEventListener('DOMContentLoaded',()=>{
  const materialInput=document.createElement('input');materialInput.type='file';materialInput.multiple=true;materialInput.hidden=true;document.body.appendChild(materialInput);
  addBtn.onclick=()=>materialInput.click();
  let materials=(st.materials||[]).map(x=>typeof x==='string'?{name:x}:x);
+ const hasPreloadedLine=GROUP==='1'||GROUP==='2';
+ if(hasPreloadedLine){
+   const pre=document.createElement('div');pre.className='material preloaded';
+   pre.innerHTML='<div class="file"><b>Line · brugerinterview</b><small>Pre-loadet rå empiri · kun '+GROUP_LABEL+'</small></div>';
+   addBtn.parentElement.insertBefore(pre,addBtn);
+ }
  function persist(){save({materials})}
  function addMaterial(item){
   const el=document.createElement('div');el.className='material';el.dataset.name=item.name;

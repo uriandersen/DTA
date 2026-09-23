@@ -34,12 +34,9 @@ window.addEventListener('DOMContentLoaded',()=>{
  const materialInput=document.createElement('input');materialInput.type='file';materialInput.multiple=true;materialInput.hidden=true;document.body.appendChild(materialInput);
  addBtn.onclick=()=>materialInput.click();
  let materials=(st.materials||[]).map(x=>typeof x==='string'?{name:x}:x);
- const hasPreloadedLine=GROUP==='1'||GROUP==='2';
- if(hasPreloadedLine){
-   const pre=document.createElement('div');pre.className='material preloaded';
-   pre.innerHTML='<div class="file"><b>Line · brugerinterview</b><small>Pre-loadet rå empiri · kun '+GROUP_LABEL+'</small></div>';
-   addBtn.parentElement.insertBefore(pre,addBtn);
- }
+ const addPreloaded=(title,meta)=>{const pre=document.createElement('div');pre.className='material preloaded';pre.innerHTML='<div class="file"><b></b><small></small></div>';pre.querySelector('b').textContent=title;pre.querySelector('small').textContent=meta;addBtn.parentElement.insertBefore(pre,addBtn)};
+ addPreloaded('CASE · Den usynlige gæld','Fælles case · pre-loadet');
+ if(GROUP==='1'||GROUP==='2') addPreloaded('Line · brugerinterview','Rå empiri · pre-loadet · '+GROUP_LABEL);
  function persist(){save({materials})}
  function addMaterial(item){
   const el=document.createElement('div');el.className='material';el.dataset.name=item.name;

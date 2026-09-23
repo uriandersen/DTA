@@ -227,8 +227,18 @@ Skriv kun én artefaktblok pr. svar. DTA_ARTIFACT er en intern transportprotokol
     const preloadedContext=lineTranscript?{type:"input_text",text:"PRE-LOADET RÅ INTERVIEWEMPIRI — LINE. Dette er rå kildedata, ikke tidligere analyse. Følg gruppereglerne og brug kun denne gruppes interviewdel.\n\n"+lineTranscript}:null;
     const imageMaterials=materials.filter(isImageMaterial);
     const documentMaterials=materials.filter(x=>!isImageMaterial(x));
-    // Images must never enter the context-stuffing input_file path. OpenAI rejects JPG/PNG there.
-    const userContent=[{type:"input_text",text:body.message},...(preloadedContext?[preloadedContext]:[]),...imageMaterials.map(x=>({type:"input_image",file_id:x.fileId,detail:"auto"})),...documentMaterials.map(x=>({type:"input_file",file_id:x.fileId}))];
+    // Resolve uploaded images to data URLs before sending them to Responses.
+    // This keeps JPEG/PNG completely out of the context-stuffing file path.
+    const imageInputs=[];
+    for(const x of imageMaterials){
+      const fr=await fetch("https://api.openai.com/v1/files/"+encodeURIComponent(x.fileId)+"/content",{headers:{"authorization":`Bearer ${key}`}});
+      if(!fr.ok) return json({error:"Kunne ikke hente billedet til analyse",recoverable:true},fr.status);
+      const bytes=new Uint8Array(await fr.arrayBuffer());
+      let binary=""; for(let i=0;i<bytes.length;i+=0x8000) binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));
+      const mime=/^image\/(jpeg|png)$/i.test(x.mime||"")?x.mime:"image/jpeg";
+      imageInputs.push({type:"input_image",image_url:`data:${mime};base64,${btoa(binary)}`,detail:"auto"});
+    }
+    const userContent=[{type:"input_text",text:body.message},...(preloadedContext?[preloadedContext]:[]),...imageInputs,...documentMaterials.map(x=>({type:"input_file",file_id:x.fileId}))];
     const payload={model,reasoning:{effort:"low"},instructions,input:[...history,{role:"user",content:userContent}],max_output_tokens:8000};
     const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json","authorization":`Bearer ${key}`},body:JSON.stringify(payload)});
     const data=await r.json();

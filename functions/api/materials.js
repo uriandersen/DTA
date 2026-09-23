@@ -10,7 +10,7 @@ export async function onRequestPost(context) {
     const mime=String(file.type||"").toLowerCase();
     const isImage=mime==="image/jpeg"||mime==="image/png";
     const fd=new FormData();
-    fd.append("purpose",isImage?"vision":"user_data");
+    fd.append("purpose","user_data");
     fd.append("file",file,file.name||"materiale");
     const r=await fetch("https://api.openai.com/v1/files",{method:"POST",headers:{authorization:`Bearer ${key}`},body:fd});
     const data=await r.json();

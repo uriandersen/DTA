@@ -125,7 +125,18 @@ DIGITAL/WEB: Hvis den aftalte form er en interaktiv webprototype og brugeren bed
 
 KERNEPRINCIP: Prototypen er til brugertest, ikke en præsentation eller salgsslide. Prioritér en realistisk, sammenhængende og testbar oplevelse frem for forklarende tekst om løsningen.`
     }[phase] || "";
-    const caseContext = `FÆLLES CASEKONTEKST FOR ALLE GRUPPER:\nDesignudfordringen er "Den usynlige gæld". I hverdagen kan nødvendige, ikke-hastende gøremål blive udskudt og hobe sig op som en form for usynlig gæld: fx frakken der skal til rens, lågen der skal ordnes, oprydning på loftet, noget der skal sælges, en tid der skal bestilles eller et abonnement der skal opsiges. Det uløste kan fylde mentalt. Målet er ikke nødvendigvis at få mennesker til at gøre mere, men at få færre løse ender og skabe mere overblik, mental plads og afslutning. Dilemmaerne er, at det enkelte gøremål ofte er lille mens summen kan blive uoverskuelig, og at det som ikke haster er let at udskyde igen og igen.\nDen fælles designudfordring er: "Hvordan kan vi hjælpe mennesker med at nedbringe den usynlige gæld i hverdagen – og skabe mere overblik, mental plads og afslutning?"\nLeverancen er et koncept for en service/tjeneste/app eller lignende, der hjælper mennesker med at nedbringe deres usynlige gæld i hverdagen med særligt fokus på motivation og belønning. Konceptet skal udvikles på basis af brugerinvolvering, afprøves med rigtige brugere, og forslag samt brugerfeedback præsenteres i plenum.\n\nGRUPPEKONTEKST:\nDenne DTA-session tilhører Gruppe ${body.group||"ukendt"}. Behandl gruppenummeret som kendt projektkontekst, også hvis det ikke står i projektets titel eller samtale.`;\n    const history=(body.history||[]).slice(-20).map(x=>({role:x.role==="assistant"?"assistant":"user",content:x.text}));
+    const caseContext = `FÆLLES CASEKONTEKST FOR ALLE GRUPPER:\nDesignudfordringen er "Den usynlige gæld". I hverdagen kan nødvendige, ikke-hastende gøremål blive udskudt og hobe sig op som en form for usynlig gæld: fx frakken der skal til rens, lågen der skal ordnes, oprydning på loftet, noget der skal sælges, en tid der skal bestilles eller et abonnement der skal opsiges. Det uløste kan fylde mentalt. Målet er ikke nødvendigvis at få mennesker til at gøre mere, men at få færre løse ender og skabe mere overblik, mental plads og afslutning. Dilemmaerne er, at det enkelte gøremål ofte er lille mens summen kan blive uoverskuelig, og at det som ikke haster er let at udskyde igen og igen.\nDen fælles designudfordring er: "Hvordan kan vi hjælpe mennesker med at nedbringe den usynlige gæld i hverdagen – og skabe mere overblik, mental plads og afslutning?"\nLeverancen er et koncept for en service/tjeneste/app eller lignende, der hjælper mennesker med at nedbringe deres usynlige gæld i hverdagen med særligt fokus på motivation og belønning. Konceptet skal udvikles på basis af brugerinvolvering, afprøves med rigtige brugere, og forslag samt brugerfeedback præsenteres i plenum.\n\nGRUPPEKONTEKST:\nDenne DTA-session tilhører Gruppe ${body.group||"ukendt"}. Behandl gruppenummeret som kendt projektkontekst, også hvis det ikke står i projektets titel eller samtale.`;\n    const group=String(body.group||"");
+    const linePreloaded=(group==="1"||group==="2");
+    const interviewWork=(phase==="EMPATHIZE"||phase==="DEFINE") && /(interview|opsaml|transskr|line|empiri|finding|tema)/i.test(body.message||"");
+    let lineTranscript="";
+    if(linePreloaded&&interviewWork){
+      try{
+        const u=new URL("/materials/line-interview-gruppe-1-2.txt",context.request.url);
+        const rr=await fetch(u.toString());
+        if(rr.ok) lineTranscript=await rr.text();
+      }catch{}
+    }
+    const history=(body.history||[]).slice(-20).map(x=>({role:x.role==="assistant"?"assistant":"user",content:x.text}));
     const saved=(body.savedArtifacts||[]).map(x=>`${x.title||"Artefakt"}: ${x.content||""}`).join("\n\n");
     const materials=(body.materials||[]).filter(x=>x&&typeof x==="object"&&x.fileId);
     const materialNames=materials.map(x=>x.name).join(", ");
@@ -191,7 +202,7 @@ ${caseContext}\n\nAktuel fase: ${phase}. Faseinstruktionen nedenfor beskriver de
 
 ${phaseGuide}
 
-Vær konkret, kortfattet og arbejd ud fra projektets materiale og tidligere beslutninger. Projekt: ${body.projectName||"Unavngivet"}. Projektmateriale tilgængeligt som faktiske fil-inputs: ${materialNames||"ingen"}. Når brugeren beder dig læse, opsummere eller arbejde ud fra materialet, skal du bruge filernes faktiske indhold og ikke bede om gen-upload, hvis filen er tilgængelig her. Aktivt gemte artefakter: ${saved||"ingen"}.
+Vær konkret, kortfattet og arbejd ud fra projektets materiale og tidligere beslutninger. Projekt: ${body.projectName||"Unavngivet"}. Projektmateriale tilgængeligt som faktiske fil-inputs: ${materialNames||"ingen"}. ${linePreloaded?"Line-interviewet er desuden pre-loadet som rå empiri for denne gruppe og hentes automatisk ved interviewarbejde; bed ikke om upload af Line-transskriptionen.":""} Når brugeren beder dig læse, opsummere eller arbejde ud fra materialet, skal du bruge filernes faktiske indhold og ikke bede om gen-upload, hvis filen er tilgængelig her. Aktivt gemte artefakter: ${saved||"ingen"}.
 
 ARTEFAKTER: Når dit svar skaber et selvstændigt arbejdsresultat, som gruppen med rimelighed kan arbejde videre med eller gemme — fx interviewguide, interviewanalyse, temaer, insights, POV, HMW, konceptbeskrivelse, prototypebrief, testplan eller prototype — skal du markere præcis den del som et artefakt. Almindelig dialog, spørgsmål og korte forklaringer er ikke artefakter.
 Når der er et artefakt, afslut svaret med en maskinlæsbar blok på egne linjer.
@@ -205,7 +216,8 @@ For en digital prototype, webside eller anden HTML-leverance skal du BYGGE den k
 </DTA_ARTIFACT>
 HTML skal være én selvstændig fil uden build-trin. Når brugeren beder om en prototype eller fil, må du ikke sige, at du ikke kan oprette en separat/downloadbar artefakt, og du må ikke nøjes med en kodeblok. DTA-klienten gør HTML-artefaktet previewbart og downloadbart.
 Skriv kun én artefaktblok pr. svar. DTA_ARTIFACT er en intern transportprotokol: den må aldrig forklares, gengives i almindelig chattekst eller pakkes i Markdown-kodehegn. JSON skal være gyldig JSON; alle linjeskift og citationstegn inde i content skal escapes korrekt.`;
-    const userContent=[{type:"input_text",text:body.message},...materials.map(x=>({type:"input_file",file_id:x.fileId}))];
+    const preloadedContext=lineTranscript?{type:"input_text",text:"PRE-LOADET RÅ INTERVIEWEMPIRI — LINE. Dette er rå kildedata, ikke tidligere analyse. Følg gruppereglerne og brug kun denne gruppes interviewdel.\n\n"+lineTranscript}:null;
+    const userContent=[{type:"input_text",text:body.message},...(preloadedContext?[preloadedContext]:[]),...materials.map(x=>({type:"input_file",file_id:x.fileId}))];
     const payload={model,reasoning:{effort:"low"},instructions,input:[...history,{role:"user",content:userContent}],max_output_tokens:8000};
     const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json","authorization":`Bearer ${key}`},body:JSON.stringify(payload)});
     const data=await r.json();

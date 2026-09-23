@@ -50,7 +50,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   const fd=new FormData();fd.append('file',file,file.name);
   const r=await fetch('/api/materials',{method:'POST',body:fd});
   const data=await r.json();if(!r.ok)throw new Error(data.error||'Upload-fejl');
-  const item={name:file.name,fileId:data.file_id,mime:file.type||'',bytes:file.size};
+  const item={name:file.name,fileId:data.file_id,mime:data.mime||file.type||'',bytes:file.size,kind:data.kind||'file'};
   materials.push(item);addMaterial(item);persist();return item;
  }
  async function handleFiles(files,showChat=false){
@@ -58,7 +58,7 @@ window.addEventListener('DOMContentLoaded',()=>{
    try{
     const item=await uploadMaterial(f);
     if(showChat){const m=document.createElement('div');m.className='msg ai';m.innerHTML='<div class="upload-card">▣ &nbsp;<b></b>&nbsp; · tilføjet til Materiale og DTA-kontekst</div>';m.querySelector('b').textContent=item.name;$('.chat').appendChild(m)}
-   }catch(err){toast('Kunne ikke uploade '+f.name);console.error(err)}
+   }catch(err){toast('Kunne ikke uploade '+f.name+': '+(err.message||'upload-fejl'));console.error(err)}
   }
  }
  materialInput.onchange=async e=>{await handleFiles([...e.target.files]);toast('Tilføjet til Materiale')};

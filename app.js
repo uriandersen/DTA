@@ -60,6 +60,8 @@ async function pushState(){
 }
 function syncState(){if(!hydrated)return;clearTimeout(syncTimer);syncTimer=setTimeout(pushState,250)}
 function save(p){localStorage.setItem(KEY,JSON.stringify({...getState(),...p}));syncState()}
+window.dtaSavePhase=phase=>save({activePhase:phase});
+function applyPhase(phase){if(!phase)return;const el=[...document.querySelectorAll('.phase')].find(x=>x.querySelector('.phase-head span')?.textContent?.trim()===phase);if(el){document.querySelectorAll('.phase').forEach(x=>x.classList.remove('active'));el.classList.add('active')}}
 const messageId=()=>crypto.randomUUID?crypto.randomUUID():'m-'+Date.now()+'-'+Math.random().toString(36).slice(2);
 function normalizeMessages(list){return (list||[]).map(x=>({...x,id:x.id||messageId(),createdAt:Number(x.createdAt||Date.now())})).sort((a,b)=>a.createdAt-b.createdAt)}
 async function syncMessages(messages){
@@ -95,6 +97,7 @@ async function pullShared(){
     const local=getState(),merged={...local,...remote,messages:local.messages||[]};
     localStorage.setItem(KEY,JSON.stringify(merged));
     if(remote.projectName&&document.activeElement!==pn)pn.textContent=remote.projectName+' · '+GROUP_LABEL;
+    if(remote.activePhase)applyPhase(remote.activePhase);
     if(JSON.stringify(remote.currentOutput||null)!==JSON.stringify(local.currentOutput||null)){
       const existing=$('#output .output-entry');if(existing)existing.remove();
       if(remote.currentOutput)renderArtifact(remote.currentOutput);
@@ -112,6 +115,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   if(mr.ok){const md=await mr.json();if(Array.isArray(md.messages))localStorage.setItem(KEY,JSON.stringify({...getState(),messages:normalizeMessages(md.messages)}))}
  }catch(e){console.warn('Shared messages unavailable',e)}
  pn.textContent=(st.projectName||'Design Thinking-projekt')+' · '+GROUP_LABEL;
+ applyPhase(st.activePhase);
  pn.setAttribute('contenteditable','true');
  pn.setAttribute('spellcheck','false');
  const projectBase=()=>pn.textContent.split(' · '+GROUP_LABEL)[0].trim();

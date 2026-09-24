@@ -1,5 +1,10 @@
-import {gate,json} from "./_auth.js";
+import {gate,json,sha256} from "./_auth.js";
 
+async function isAdmin(request,env){
+  const raw=(request.headers.get("authorization")||"").replace(/^Bearer\s+/i,"");if(!raw)return false;
+  const stored=env.DTA_ACCESS?await env.DTA_ACCESS.get("admin_key_hash"):null;
+  return stored?(await sha256(raw))===stored:(!!env.DTA_ADMIN_KEY&&raw===env.DTA_ADMIN_KEY);
+}
 function groupOf(request){
   const g=new URL(request.url).searchParams.get("group");
   return ["1","2","3"].includes(g)?g:null;
@@ -16,7 +21,7 @@ async function load(kv,g){
   try{return raw?JSON.parse(raw):[]}catch{return []}
 }
 export async function onRequestGet(context){
-  const access=await gate(context);if(!access.ok)return json({error:access.error},403);
+  const admin=await isAdmin(context.request,context.env);if(!admin){const access=await gate(context);if(!access.ok)return json({error:access.error},403)}
   const kv=context.env.DTA_ACCESS,g=groupOf(context.request);
   if(!kv)return json({error:"State store not configured"},503);
   if(!g)return json({error:"Invalid group"},400);

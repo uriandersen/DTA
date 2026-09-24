@@ -1,0 +1,32 @@
+name: Validate DTA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check functions/api/chat.js
+          node --check functions/api/materials.js
+          node --check functions/api/access.js
+          node --check functions/api/_auth.js
+          node --check app.js
+      - name: Guard against literal escaped newline regression
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("functions/api/chat.js").read_text()
+          bad=";\\n    const group="
+          if bad in p:
+              raise SystemExit("Literal \\n regression found in chat.js")
+          print("Regression guard OK")
+          PY

@@ -34,5 +34,8 @@ export async function onRequestPut(context){
 export async function onRequestDelete(context){
  const kv=context.env.DTA_ACCESS,g=groupOf(context.request);if(!g)return json({error:"Invalid group"},400);
  if(!(await isAdmin(context.request,context.env)))return json({error:"Unauthorized"},401);
- await kv.delete("group_state_"+g);return json({ok:true,group:g});
+ const raw=await kv.get("group_state_"+g),current=raw?JSON.parse(raw):{},nextVersion=Number(current.serverVersion||0)+1,resetAt=Date.now();
+ await kv.put("group_state_"+g,JSON.stringify({serverVersion:nextVersion,serverUpdatedAt:resetAt,resetAt}));
+ await kv.delete("group_messages_"+g);
+ return json({ok:true,group:g,version:nextVersion,resetAt});
 }

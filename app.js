@@ -57,9 +57,22 @@ async function pushState(){
 }
 function syncState(){if(!hydrated)return;clearTimeout(syncTimer);syncTimer=setTimeout(pushState,250)}
 function save(p){localStorage.setItem(KEY,JSON.stringify({...getState(),...p}));syncState()}
+const messageId=()=>crypto.randomUUID?crypto.randomUUID():'m-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+function normalizeMessages(list){return (list||[]).map(x=>({...x,id:x.id||messageId(),createdAt:Number(x.createdAt||Date.now())})).sort((a,b)=>a.createdAt-b.createdAt)}
+async function syncMessages(messages){
+ try{
+  const r=await fetch('/api/group-messages?group='+encodeURIComponent(GROUP),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({messages})});
+  if(r.ok){const d=await r.json();const merged=normalizeMessages(d.messages||[]);localStorage.setItem(KEY,JSON.stringify({...getState(),messages:merged}));return merged}
+ }catch(e){console.warn('Message sync failed',e)}
+ return normalizeMessages(getState().messages||messages);
+}
 window.addEventListener('DOMContentLoaded',async()=>{
  await hydrateState();
  const pn=$('.project-name'), st=getState();
+ try{
+  const mr=await fetch('/api/group-messages?group='+encodeURIComponent(GROUP));
+  if(mr.ok){const md=await mr.json();if(Array.isArray(md.messages))localStorage.setItem(KEY,JSON.stringify({...getState(),messages:normalizeMessages(md.messages)}))}
+ }catch(e){console.warn('Shared messages unavailable',e)}
  pn.textContent=(st.projectName||'Design Thinking-projekt')+' · '+GROUP_LABEL;
  pn.setAttribute('contenteditable','true');
  pn.setAttribute('spellcheck','false');
@@ -168,10 +181,10 @@ window.addEventListener('DOMContentLoaded',async()=>{
  }
  send.onclick=async()=>{
   if(activeController){activeController.abort();return}
-  const v=ta.value.trim();if(!v)return;const c=$('.chat');const m=document.createElement('div');m.className='msg user';m.textContent=v;c.appendChild(m);ta.value='';const h=getState().messages||[];h.push({role:'user',text:v});save({messages:h});c.scrollTop=c.scrollHeight;
+  const v=ta.value.trim();if(!v)return;const c=$('.chat');const m=document.createElement('div');m.className='msg user';m.textContent=v;c.appendChild(m);ta.value='';let h=normalizeMessages(getState().messages||[]);const userMessage={id:messageId(),role:'user',text:v,createdAt:Date.now()};h.push(userMessage);save({messages:h});h=await syncMessages([userMessage]);c.scrollTop=c.scrollHeight;
   activeController=new AbortController();send.innerHTML='<span class="stop-square">■</span>';send.setAttribute('aria-label','Stop');send.classList.add('stop');
   const wait=document.createElement('div');wait.className='msg ai';wait.innerHTML='<span class="thinking" aria-label="DTA arbejder"><i></i><i></i><i></i></span>';c.appendChild(wait);
-  try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:materials,savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');updatePrototypeProgress(data.text,phase);const cleanText=phase==='PROTOTYPE'?data.text.replace(/\*\*?#\s*\d+\s*\/\s*\d+\*\*?\s*/g,'').replace(/#\s*\d+\s*\/\s*\d+\s*/g,''):data.text;wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(cleanText)+'</div>';h.push({role:'assistant',text:data.text,phase});save({messages:h});if(data.artifact)renderArtifact(data.artifact);}
+  try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:materials,savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');updatePrototypeProgress(data.text,phase);const cleanText=phase==='PROTOTYPE'?data.text.replace(/\*\*?#\s*\d+\s*\/\s*\d+\*\*?\s*/g,'').replace(/#\s*\d+\s*\/\s*\d+\s*/g,''):data.text;wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(cleanText)+'</div>';const assistantMessage={id:messageId(),role:'assistant',text:data.text,phase,createdAt:Date.now()};h.push(assistantMessage);save({messages:h});h=await syncMessages([assistantMessage]);if(data.artifact)renderArtifact(data.artifact);}
   catch(err){if(err.name==='AbortError'){wait.remove();toast('Stoppet')}else{wait.textContent='DTA kunne ikke svare endnu: '+err.message}}
   finally{activeController=null;send.innerHTML='<span class="send-arrow">➜</span>';send.setAttribute('aria-label','Send');send.classList.remove('stop');c.scrollTop=c.scrollHeight}
  };

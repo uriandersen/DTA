@@ -98,6 +98,7 @@ async function pullShared(){
     localStorage.setItem(KEY,JSON.stringify(merged));
     if(remote.projectName&&document.activeElement!==pn)pn.textContent=remote.projectName+' · '+GROUP_LABEL;
     if(remote.activePhase)applyPhase(remote.activePhase);
+    if(Array.isArray(remote.materials))refreshMaterials(remote.materials);
     if(JSON.stringify(remote.currentOutput||null)!==JSON.stringify(local.currentOutput||null)){
       const existing=$('#output .output-entry');if(existing)existing.remove();
       if(remote.currentOutput)renderArtifact(remote.currentOutput);
@@ -139,9 +140,16 @@ window.addEventListener('DOMContentLoaded',async()=>{
   el.querySelector('.remove').onclick=()=>{materials=materials.filter(x=>x!==item);el.remove();persist()};
   addBtn.parentElement.insertBefore(el,addBtn);
  }
+ function refreshMaterials(next){
+  const normalized=(next||[]).map(x=>typeof x==='string'?{name:x}:x);
+  if(JSON.stringify(normalized)===JSON.stringify(materials))return;
+  materials=normalized;
+  document.querySelectorAll('#materials .material:not(.preloaded)').forEach(x=>x.remove());
+  materials.forEach(addMaterial);
+ }
  async function uploadMaterial(file){
   const fd=new FormData();fd.append('file',file,file.name);
-  const r=await fetch('/api/materials',{method:'POST',body:fd});
+  const r=await fetch('/api/materials',{method:'POST',headers:sharedHeaders(),body:fd});
   const data=await r.json();if(!r.ok)throw new Error(data.error||'Upload-fejl');
   const item={name:file.name,fileId:data.file_id,mime:data.mime||file.type||'',bytes:file.size,kind:data.kind||'file'};
   materials.push(item);addMaterial(item);persist();return item;

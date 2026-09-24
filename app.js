@@ -19,8 +19,12 @@ if(RESET){
 const $=s=>document.querySelector(s);
 function toast(t){let e=$('#toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;right:24px;bottom:24px;background:#202020;color:#fff;padding:10px 14px;border-radius:5px;font:12px Aptos,Arial;z-index:99';document.body.appendChild(e)}e.textContent=t;setTimeout(()=>e.remove(),1400)}
 function getState(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {}}}
-function save(p){localStorage.setItem(KEY,JSON.stringify({...getState(),...p}))}
-window.addEventListener('DOMContentLoaded',()=>{
+let syncTimer=null,hydrated=false;
+async function hydrateState(){try{const r=await fetch('/api/group-state?group='+encodeURIComponent(GROUP));if(r.ok){const d=await r.json();if(d.state&&Object.keys(d.state).length)localStorage.setItem(KEY,JSON.stringify(d.state))}}catch(e){console.warn('Server state unavailable',e)}hydrated=true}
+function syncState(){if(!hydrated)return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>fetch('/api/group-state?group='+encodeURIComponent(GROUP),{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(getState())}).catch(e=>console.warn('State sync failed',e)),250)}
+function save(p){localStorage.setItem(KEY,JSON.stringify({...getState(),...p}));syncState()}
+window.addEventListener('DOMContentLoaded',async()=>{
+ await hydrateState();
  const pn=$('.project-name'), st=getState();
  pn.textContent=(st.projectName||'Design Thinking-projekt')+' · '+GROUP_LABEL;
  pn.setAttribute('contenteditable','true');
@@ -89,6 +93,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  function renderArtifact(artifact){
   if(!artifact||!artifact.content)return;
   const out=$('#output'), isHtml=artifact.type==='html';
+  save({currentOutput:artifact});
   const isPrototypeBrief=!isHtml&&/prototypebrief/i.test((artifact.title||'')+' '+(artifact.phase||''));
   const existing=out.querySelector('.output-entry');
   if(existing){
@@ -105,7 +110,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   const body=entry.querySelector('.artifact-body');
   if(isHtml){body.innerHTML='<div class="html-artifact"><b>'+escapeHtml(htmlName(artifact))+'</b><small>Interaktiv HTML-prototype</small></div>'}
   else{body.classList.add('md');body.innerHTML=renderMarkdown(stripDuplicateArtifactHeading(artifact.content,artifact.title||''))}
-  entry.querySelector('[data-act="remove"]').onclick=e=>{e.preventDefault();entry.remove();toast('Fjernet fra Output')};
+  entry.querySelector('[data-act="remove"]').onclick=e=>{e.preventDefault();entry.remove();save({currentOutput:null});toast('Fjernet fra Output')};
   if(isHtml){entry.querySelector('[data-act="preview"]').onclick=e=>{e.preventDefault();previewHtml(artifact)};entry.querySelector('[data-act="download"]').onclick=e=>{e.preventDefault();downloadHtml(artifact)};if(hasStoryboard)entry.querySelector('[data-act="storyboard"]').onclick=e=>{e.preventDefault();openStoryboard(artifact)}}
   out.prepend(entry);
  }
@@ -114,6 +119,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   saved.forEach((x,i)=>{const e=document.createElement('div');e.className='saved-entry';const isHtml=x.type==='html';e.innerHTML='<div class="saved-item"><b></b><small></small></div><div class="saved-actions"><a href="#" data-act="context">BRUG SOM KONTEKST</a>'+(isHtml?'<a href="#" data-act="preview">ÅBN PREVIEW</a><a href="#" data-act="download">DOWNLOAD .HTML</a>':'')+'</div>';e.querySelector('b').textContent=x.title||'Output';e.querySelector('small').textContent=isHtml?htmlName(x):(x.phase||'');e.querySelector('[data-act="context"]').onclick=ev=>{ev.preventDefault();const st=getState();const active=st.activeSaved||[];if(!active.includes(i))active.push(i);save({activeSaved:active});toast('Bruges som kontekst')};if(isHtml){e.querySelector('[data-act="preview"]').onclick=ev=>{ev.preventDefault();previewHtml(x)};e.querySelector('[data-act="download"]').onclick=ev=>{ev.preventDefault();downloadHtml(x)}}pane.appendChild(e)});
  }
  renderSaved();
+ if(st.currentOutput)renderArtifact(st.currentOutput);
  const send=$('.send'), ta=$('textarea'), protoProgress=$('.prototype-progress'); let activeController=null;
  function updatePrototypeProgress(text,phase){
   if(!protoProgress)return;

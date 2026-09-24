@@ -100,16 +100,25 @@ async function pullShared(){
    const sd=await sr.json(),remote=sd.state||{};
    if(Number(sd.version||0)>serverVersion&&!syncInFlight){
     serverVersion=Number(sd.version||0);
-    const local=getState(),merged={...local,...remote,messages:local.messages||[]};
+    const local=getState(),isReset=Number(remote.resetAt||0)>Number(local.resetAt||0);
+    const merged=isReset?{...remote,messages:[]}:{...local,...remote,messages:local.messages||[]};
     localStorage.setItem(KEY,JSON.stringify(merged));
-    if(remote.projectName&&document.activeElement!==pn)pn.textContent=remote.projectName+' · '+GROUP_LABEL;
-    if(remote.activePhase)applyPhase(remote.activePhase);
-    if(Array.isArray(remote.materials))refreshMaterials(remote.materials);
-    if(JSON.stringify(remote.currentOutput||null)!==JSON.stringify(local.currentOutput||null)){
+    if(isReset){
+      pendingPatch={};
+      pn.textContent='Design Thinking-projekt · '+GROUP_LABEL;
+      applyPhase('EMPATHIZE');refreshMaterials([]);
       const existing=$('#output .output-entry');if(existing)existing.remove();
-      if(remote.currentOutput)renderArtifact(remote.currentOutput,false);
+      renderSaved();document.querySelectorAll('.chat .msg').forEach(x=>x.remove());
+    }else{
+      if(remote.projectName&&document.activeElement!==pn)pn.textContent=remote.projectName+' · '+GROUP_LABEL;
+      if(remote.activePhase)applyPhase(remote.activePhase);
+      if(Array.isArray(remote.materials))refreshMaterials(remote.materials);
+      if(JSON.stringify(remote.currentOutput||null)!==JSON.stringify(local.currentOutput||null)){
+        const existing=$('#output .output-entry');if(existing)existing.remove();
+        if(remote.currentOutput)renderArtifact(remote.currentOutput,false);
+      }
+      if(JSON.stringify(remote.saved||[])!==JSON.stringify(local.saved||[]))renderSaved();
     }
-    if(JSON.stringify(remote.saved||[])!==JSON.stringify(local.saved||[]))renderSaved();
    }
   }
  }catch(e){console.warn('Live sync unavailable',e)}

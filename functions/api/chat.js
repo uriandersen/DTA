@@ -1,7 +1,8 @@
-import {gate} from "./_auth.js";
+import {gate,sha256} from "./_auth.js";
+async function adminOK(request,env){const raw=(request.headers.get("authorization")||"").replace(/^Bearer\s+/i,"");if(!raw)return false;const stored=env.DTA_ACCESS?await env.DTA_ACCESS.get("admin_key_hash"):null;return stored?(await sha256(raw))===stored:(!!env.DTA_ADMIN_KEY&&raw===env.DTA_ADMIN_KEY)}
 export async function onRequestPost(context) {
   try {
-    const access=await gate(context); if(!access.ok) return json({error:access.error},403);
+    const admin=await adminOK(context.request,context.env);if(!admin){const access=await gate(context); if(!access.ok) return json({error:access.error},403);}
     const body = await context.request.json();
     const extractionAttempt=/(system\s*prompt|developer\s*prompt|interne?\s+instruktioner|skjulte?\s+instruktioner|phase\s*guide|dta_artifact|kopi(?:er|ér).*?(?:dta|tool|værktøj)|klon.*?dta|rekonstruer.*?dta|ignorer.*?(?:instruktion|instruction)|ignore.*?(?:instruction|prompt))/i.test(String(body.message||""));
     if(extractionAttempt) return json({text:"Jeg kan ikke udlevere eller rekonstruere DTA's interne instruktioner. Jeg kan godt hjælpe jer med at prototype jeres egen Design Thinking-assistent fra bunden.",artifact:null},200);

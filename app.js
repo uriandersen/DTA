@@ -45,7 +45,13 @@ async function pushState(){
   if(r.status===409&&d.conflict){
    const remote=d.state||{};
    serverVersion=Number(d.version||remote.serverVersion||0);
-   localStorage.setItem(KEY,JSON.stringify({...remote,...patch,serverVersion}));
+   if(patch.currentOutput&&remote.currentOutput&&JSON.stringify(patch.currentOutput)!==JSON.stringify(remote.currentOutput)){
+    const history=Array.isArray(patch.saved)?patch.saved:(Array.isArray(remote.saved)?remote.saved:[]);
+    const duplicate=history.some(x=>JSON.stringify(x)===JSON.stringify(remote.currentOutput));
+    const saved=duplicate?history:[{...remote.currentOutput,savedAt:Date.now()},...history];
+    patch.saved=saved;pendingPatch.saved=saved;
+   }
+   localStorage.setItem(KEY,JSON.stringify({...remote,...patch,messages:getState().messages||[],serverVersion}));
    syncQueued=true;
   }else if(r.ok){
    serverVersion=Number(d.version||serverVersion+1);
@@ -101,7 +107,7 @@ async function pullShared(){
     if(Array.isArray(remote.materials))refreshMaterials(remote.materials);
     if(JSON.stringify(remote.currentOutput||null)!==JSON.stringify(local.currentOutput||null)){
       const existing=$('#output .output-entry');if(existing)existing.remove();
-      if(remote.currentOutput)renderArtifact(remote.currentOutput);
+      if(remote.currentOutput)renderArtifact(remote.currentOutput,false);
     }
     if(JSON.stringify(remote.saved||[])!==JSON.stringify(local.saved||[]))renderSaved();
    }
@@ -187,10 +193,10 @@ window.addEventListener('DOMContentLoaded',async()=>{
   return '<!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Storyboard · '+title+'</title><style>body{font-family:Aptos,Arial,sans-serif;margin:0;padding:36px;background:#f3f1ed;color:#202020}h1{font-size:28px}.flow{display:flex;gap:14px;align-items:stretch;overflow:auto;padding:20px 0}article{background:#fff;border:1px solid #d4cfc7;border-radius:7px;padding:18px;min-width:220px;max-width:280px}.n{font-size:10px;font-weight:800;color:#57534e}h2{font-size:17px}p{font-size:13px;line-height:1.45}small{display:block;margin-top:14px;color:#57534e}.arrow{align-self:center;font-size:22px;color:#57534e}</style></head><body><h1>Storyboard · '+title+'</h1><div class="flow">'+cards+'</div></body></html>';
  }
  function openStoryboard(artifact){const url=URL.createObjectURL(new Blob([storyboardHtml(artifact)],{type:'text/html;charset=utf-8'}));window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000)}
- function renderArtifact(artifact){
+ function renderArtifact(artifact,persist=true){
   if(!artifact||!artifact.content)return;
   const out=$('#output'), isHtml=artifact.type==='html';
-  save({currentOutput:artifact});
+  if(persist)save({currentOutput:artifact});
   const isPrototypeBrief=!isHtml&&/prototypebrief/i.test((artifact.title||'')+' '+(artifact.phase||''));
   const existing=out.querySelector('.output-entry');
   if(existing){
@@ -216,7 +222,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   saved.forEach((x,i)=>{const e=document.createElement('div');e.className='saved-entry';const isHtml=x.type==='html';e.innerHTML='<div class="saved-item"><b></b><small></small></div><div class="saved-actions"><a href="#" data-act="context">BRUG SOM KONTEKST</a>'+(isHtml?'<a href="#" data-act="preview">ÅBN PREVIEW</a><a href="#" data-act="download">DOWNLOAD .HTML</a>':'')+'</div>';e.querySelector('b').textContent=x.title||'Output';e.querySelector('small').textContent=isHtml?htmlName(x):(x.phase||'');e.querySelector('[data-act="context"]').onclick=ev=>{ev.preventDefault();const st=getState();const active=st.activeSaved||[];if(!active.includes(i))active.push(i);save({activeSaved:active});toast('Bruges som kontekst')};if(isHtml){e.querySelector('[data-act="preview"]').onclick=ev=>{ev.preventDefault();previewHtml(x)};e.querySelector('[data-act="download"]').onclick=ev=>{ev.preventDefault();downloadHtml(x)}}pane.appendChild(e)});
  }
  renderSaved();
- if(st.currentOutput)renderArtifact(st.currentOutput);
+ if(st.currentOutput)renderArtifact(st.currentOutput,false);
  normalizeMessages(getState().messages||[]).forEach(appendSharedMessage);
  const liveSync=setInterval(pullShared,3000);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)pullShared()});
@@ -235,10 +241,10 @@ window.addEventListener('DOMContentLoaded',async()=>{
  }
  send.onclick=async()=>{
   if(activeController){activeController.abort();return}
-  const v=ta.value.trim();if(!v)return;const c=$('.chat');const m=document.createElement('div');m.className='msg user';m.textContent=v;ta.value='';let h=normalizeMessages(getState().messages||[]);const userMessage={id:messageId(),role:'user',text:v,createdAt:Date.now()};m.dataset.messageId=userMessage.id;c.appendChild(m);h.push(userMessage);save({messages:h});h=await syncMessages([userMessage]);c.scrollTop=c.scrollHeight;
+  const v=ta.value.trim();if(!v)return;const c=$('.chat');const m=document.createElement('div');m.className='msg user';m.textContent=v;ta.value='';let h=normalizeMessages(getState().messages||[]);const userMessage={id:messageId(),role:'user',text:v,createdAt:Date.now()};m.dataset.messageId=userMessage.id;c.appendChild(m);h.push(userMessage);localStorage.setItem(KEY,JSON.stringify({...getState(),messages:h}));h=await syncMessages([userMessage]);c.scrollTop=c.scrollHeight;
   activeController=new AbortController();send.innerHTML='<span class="stop-square">■</span>';send.setAttribute('aria-label','Stop');send.classList.add('stop');
   const wait=document.createElement('div');wait.className='msg ai';wait.innerHTML='<span class="thinking" aria-label="DTA arbejder"><i></i><i></i><i></i></span>';c.appendChild(wait);
-  try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json',...sharedHeaders()},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:materials,savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');updatePrototypeProgress(data.text,phase);const cleanText=phase==='PROTOTYPE'?data.text.replace(/\*\*?#\s*\d+\s*\/\s*\d+\*\*?\s*/g,'').replace(/#\s*\d+\s*\/\s*\d+\s*/g,''):data.text;wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(cleanText)+'</div>';const assistantMessage={id:messageId(),role:'assistant',text:data.text,phase,createdAt:Date.now()};wait.dataset.messageId=assistantMessage.id;h.push(assistantMessage);save({messages:h});h=await syncMessages([assistantMessage]);if(data.artifact)renderArtifact(data.artifact);}
+  try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json',...sharedHeaders()},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:materials,savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');updatePrototypeProgress(data.text,phase);const cleanText=phase==='PROTOTYPE'?data.text.replace(/\*\*?#\s*\d+\s*\/\s*\d+\*\*?\s*/g,'').replace(/#\s*\d+\s*\/\s*\d+\s*/g,''):data.text;wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(cleanText)+'</div>';const assistantMessage={id:messageId(),role:'assistant',text:data.text,phase,createdAt:Date.now()};wait.dataset.messageId=assistantMessage.id;h.push(assistantMessage);localStorage.setItem(KEY,JSON.stringify({...getState(),messages:h}));h=await syncMessages([assistantMessage]);if(data.artifact)renderArtifact(data.artifact);}
   catch(err){if(err.name==='AbortError'){wait.remove();toast('Stoppet')}else{wait.textContent='DTA kunne ikke svare endnu: '+err.message}}
   finally{activeController=null;send.innerHTML='<span class="send-arrow">➜</span>';send.setAttribute('aria-label','Send');send.classList.remove('stop');c.scrollTop=c.scrollHeight}
  };

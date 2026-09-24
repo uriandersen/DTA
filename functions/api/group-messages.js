@@ -28,7 +28,7 @@ export async function onRequestGet(context){
   return json({group:g,messages:await load(kv,g)});
 }
 export async function onRequestPost(context){
-  const access=await gate(context);if(!access.ok)return json({error:access.error},403);
+  const admin=await isAdmin(context.request,context.env);if(!admin){const access=await gate(context);if(!access.ok)return json({error:access.error},403)}
   const kv=context.env.DTA_ACCESS,g=groupOf(context.request);
   if(!kv)return json({error:"State store not configured"},503);
   if(!g)return json({error:"Invalid group"},400);

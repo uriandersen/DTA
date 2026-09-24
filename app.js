@@ -79,11 +79,29 @@ function appendSharedMessage(x){
 async function pullShared(){
  if(document.hidden)return;
  try{
-  const r=await fetch('/api/group-messages?group='+encodeURIComponent(GROUP),{headers:sharedHeaders(),cache:'no-store'});
-  if(!r.ok)return;
-  const d=await r.json(),remote=normalizeMessages(d.messages||[]),local=normalizeMessages(getState().messages||[]);
-  const localIds=new Set(local.map(x=>x.id)),newOnes=remote.filter(x=>!localIds.has(x.id));
-  if(newOnes.length){localStorage.setItem(KEY,JSON.stringify({...getState(),messages:remote}));newOnes.forEach(appendSharedMessage)}
+  const [mr,sr]=await Promise.all([
+   fetch('/api/group-messages?group='+encodeURIComponent(GROUP),{headers:sharedHeaders(),cache:'no-store'}),
+   fetch('/api/group-state?group='+encodeURIComponent(GROUP),{headers:sharedHeaders(),cache:'no-store'})
+  ]);
+  if(mr.ok){
+   const d=await mr.json(),remote=normalizeMessages(d.messages||[]),local=normalizeMessages(getState().messages||[]);
+   const localIds=new Set(local.map(x=>x.id)),newOnes=remote.filter(x=>!localIds.has(x.id));
+   if(newOnes.length){localStorage.setItem(KEY,JSON.stringify({...getState(),messages:remote}));newOnes.forEach(appendSharedMessage)}
+  }
+  if(sr.ok){
+   const sd=await sr.json(),remote=sd.state||{};
+   if(Number(sd.version||0)>serverVersion&&!syncInFlight){
+    serverVersion=Number(sd.version||0);
+    const local=getState(),merged={...local,...remote,messages:local.messages||[]};
+    localStorage.setItem(KEY,JSON.stringify(merged));
+    if(remote.projectName&&document.activeElement!==pn)pn.textContent=remote.projectName+' · '+GROUP_LABEL;
+    if(JSON.stringify(remote.currentOutput||null)!==JSON.stringify(local.currentOutput||null)){
+      const existing=$('#output .output-entry');if(existing)existing.remove();
+      if(remote.currentOutput)renderArtifact(remote.currentOutput);
+    }
+    if(JSON.stringify(remote.saved||[])!==JSON.stringify(local.saved||[]))renderSaved();
+   }
+  }
  }catch(e){console.warn('Live sync unavailable',e)}
 }
 window.addEventListener('DOMContentLoaded',async()=>{

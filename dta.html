@@ -52,7 +52,7 @@ button,input,textarea{font:inherit}.app{max-width:1440px;height:calc(100vh - 48p
 </div></aside></div></div>
 <script>
 function leftTab(id,b){document.querySelectorAll('.left-view').forEach(x=>x.classList.remove('on'));document.getElementById(id).classList.add('on');b.parentElement.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on')}
-function selectPhase(el){document.querySelectorAll('.phase').forEach(x=>x.classList.remove('active'));el.classList.add('active')}
+function selectPhase(el){document.querySelectorAll('.phase').forEach(x=>x.classList.remove('active'));el.classList.add('active');const phase=el.querySelector('.phase-head span')?.textContent?.trim();if(phase&&window.dtaSavePhase)window.dtaSavePhase(phase)}
 function togglePhase(el){el.classList.toggle('open');const b=el.querySelector('.phase-toggle');if(b)b.textContent=el.classList.contains('open')?'⌃':'⌄'}
 function addPhaseItem(button){const row=document.createElement('div');row.className='resource';row.innerHTML='<span class="icon">◇</span><div style="flex:1"><b contenteditable="true">Ny metode / skill</b><div class="meta" contenteditable="true">Klik for at redigere</div></div>';button.parentElement.insertBefore(row,button)}
 function rightTab(id,b){document.getElementById('output').classList.toggle('hidden',id!=='output');document.getElementById('saved').classList.toggle('on',id==='saved');b.parentElement.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on')}

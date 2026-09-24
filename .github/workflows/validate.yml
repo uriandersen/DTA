@@ -20,6 +20,7 @@ jobs:
           node --check functions/api/access.js
           node --check functions/api/group-state.js
           node --check functions/api/group-messages.js
+          node --check functions/api/version.js
           node --check functions/api/_auth.js
           node --check app.js
       - name: Guard against literal escaped newline regression

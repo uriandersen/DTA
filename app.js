@@ -70,30 +70,44 @@ window.addEventListener('DOMContentLoaded',()=>{
  function htmlName(artifact){let n=(artifact.filename||artifact.title||'prototype').toLowerCase().replace(/[^a-z0-9æøå]+/gi,'-').replace(/^-|-$/g,'');return (n||'prototype')+'.html'}
  function previewHtml(artifact){const url=URL.createObjectURL(htmlBlob(artifact));window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000)}
  function downloadHtml(artifact){const url=URL.createObjectURL(htmlBlob(artifact)),a=document.createElement('a');a.href=url;a.download=htmlName(artifact);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+ function archiveArtifact(artifact){
+  if(!artifact||!artifact.content)return;
+  const st=getState(), saved=st.saved||[];
+  saved.unshift({...artifact,savedAt:Date.now()});save({saved});renderSaved();
+ }
+ function stripDuplicateArtifactHeading(content,title){
+  const lines=String(content||'').split(/\r?\n/);
+  if(lines.length&&lines[0].replace(/^#{1,3}\s*/,'').trim().toLowerCase()===String(title||'').trim().toLowerCase()) lines.shift();
+  return lines.join('\n').trim();
+ }
+ function storyboardHtml(artifact){
+  const title=escapeHtml(artifact.title||'Prototype'), screens=artifact.storyboard&&Array.isArray(artifact.storyboard.screens)?artifact.storyboard.screens:[];
+  const cards=screens.length?screens.map((s,i)=>'<article><div class="n">'+(i+1)+'</div><h2>'+escapeHtml(s.title||('Skærm '+(i+1)))+'</h2><p>'+escapeHtml(s.description||'')+'</p>'+(s.action?'<small>'+escapeHtml(s.action)+'</small>':'')+'</article>').join('<div class="arrow">→</div>'):'<p>Storyboard er ikke tilgængeligt for denne prototype endnu.</p>';
+  return '<!doctype html><html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Storyboard · '+title+'</title><style>body{font-family:Aptos,Arial,sans-serif;margin:0;padding:36px;background:#f3f1ed;color:#202020}h1{font-size:28px}.flow{display:flex;gap:14px;align-items:stretch;overflow:auto;padding:20px 0}article{background:#fff;border:1px solid #d4cfc7;border-radius:7px;padding:18px;min-width:220px;max-width:280px}.n{font-size:10px;font-weight:800;color:#57534e}h2{font-size:17px}p{font-size:13px;line-height:1.45}small{display:block;margin-top:14px;color:#57534e}.arrow{align-self:center;font-size:22px;color:#57534e}</style></head><body><h1>Storyboard · '+title+'</h1><div class="flow">'+cards+'</div></body></html>';
+ }
+ function openStoryboard(artifact){const url=URL.createObjectURL(new Blob([storyboardHtml(artifact)],{type:'text/html;charset=utf-8'}));window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000)}
  function renderArtifact(artifact){
   if(!artifact||!artifact.content)return;
   const out=$('#output'), isHtml=artifact.type==='html';
   const isPrototypeBrief=!isHtml&&/prototypebrief/i.test((artifact.title||'')+' '+(artifact.phase||''));
-  if(isPrototypeBrief){
-   const existing=[...out.querySelectorAll('.output-entry')].find(e=>e.dataset.prototypeBrief==='1');
-   if(existing)existing.remove();
+  const existing=out.querySelector('.output-entry');
+  if(existing){
+   const old=existing._artifact;
+   const revisingBrief=isPrototypeBrief&&old&&!old.type&&/prototypebrief/i.test((old.title||'')+' '+(old.phase||''));
+   const revisingPrototype=isHtml&&old&&old.type==='html'&&String(old.title||'').toLowerCase()===String(artifact.title||'').toLowerCase();
+   if(!revisingBrief&&!revisingPrototype) archiveArtifact(old);
+   existing.remove();
   }
-  const entry=document.createElement('div');entry.className='output-entry';
-  if(isPrototypeBrief)entry.dataset.prototypeBrief='1';
-  entry.innerHTML='<div class="artifact"><span class="badge"></span><h2></h2><div class="artifact-body"></div></div><div class="artifact-actions"><a href="#" data-act="save">GEM</a>'+(isHtml?'<a href="#" data-act="preview">ÅBN PREVIEW</a><a href="#" data-act="download">DOWNLOAD .HTML</a>':'')+'<a href="#" data-act="remove">FJERN</a></div>';
-  entry.querySelector('.badge').textContent=artifact.phase||'OUTPUT';
-  entry.querySelector('h2').textContent=artifact.title||'Output';
+  const entry=document.createElement('div');entry.className='output-entry';entry._artifact=artifact;
+  const hasStoryboard=isHtml&&artifact.storyboard&&Array.isArray(artifact.storyboard.screens)&&artifact.storyboard.screens.length;
+  entry.innerHTML='<div class="artifact"><span class="badge"></span><h2></h2><div class="artifact-body"></div></div><div class="artifact-actions">'+(isHtml?'<a href="#" data-act="preview">ÅBN PREVIEW</a>'+(hasStoryboard?'<a href="#" data-act="storyboard">STORYBOARD</a>':'')+'<a href="#" data-act="download">DOWNLOAD .HTML</a>':'')+'<a href="#" data-act="remove">FJERN</a></div>';
+  entry.querySelector('.badge').textContent=artifact.phase||'OUTPUT';entry.querySelector('h2').textContent=artifact.title||'Output';
   const body=entry.querySelector('.artifact-body');
   if(isHtml){body.innerHTML='<div class="html-artifact"><b>'+escapeHtml(htmlName(artifact))+'</b><small>Interaktiv HTML-prototype</small></div>'}
-  else{body.classList.add('md');body.innerHTML=renderMarkdown(artifact.content)}
-  entry.querySelector('[data-act="save"]').onclick=e=>{e.preventDefault();saveArtifact(artifact)};
+  else{body.classList.add('md');body.innerHTML=renderMarkdown(stripDuplicateArtifactHeading(artifact.content,artifact.title||''))}
   entry.querySelector('[data-act="remove"]').onclick=e=>{e.preventDefault();entry.remove();toast('Fjernet fra Output')};
-  if(isHtml){entry.querySelector('[data-act="preview"]').onclick=e=>{e.preventDefault();previewHtml(artifact)};entry.querySelector('[data-act="download"]').onclick=e=>{e.preventDefault();downloadHtml(artifact)}}
+  if(isHtml){entry.querySelector('[data-act="preview"]').onclick=e=>{e.preventDefault();previewHtml(artifact)};entry.querySelector('[data-act="download"]').onclick=e=>{e.preventDefault();downloadHtml(artifact)};if(hasStoryboard)entry.querySelector('[data-act="storyboard"]').onclick=e=>{e.preventDefault();openStoryboard(artifact)}}
   out.prepend(entry);
- }
- function saveArtifact(artifact){
-  const st=getState(), saved=st.saved||[];
-  saved.unshift({...artifact,savedAt:Date.now()});save({saved});renderSaved();toast('Gemt');
  }
  function renderSaved(){
   const pane=$('#saved'), saved=getState().saved||[];pane.innerHTML='';

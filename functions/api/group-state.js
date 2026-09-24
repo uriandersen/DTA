@@ -24,7 +24,7 @@ export async function onRequestPut(context){
  const baseVersion=Number(incoming.baseVersion||0);
  if(raw&&baseVersion!==currentVersion)return json({error:"State conflict",conflict:true,group:g,version:currentVersion,state:current},409);
  const nextVersion=currentVersion+1;
- const {baseVersion:_,...state}=incoming;
+ const {baseVersion:_,messages:__,...state}=incoming;
  const next={...state,serverVersion:nextVersion,serverUpdatedAt:Date.now()};
  const payload=JSON.stringify(next);
  if(payload.length>5000000)return json({error:"Project state too large"},413);

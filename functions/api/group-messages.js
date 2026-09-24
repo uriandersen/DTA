@@ -18,7 +18,13 @@ function cleanMessage(x){
 }
 async function load(kv,g){
   const raw=await kv.get("group_messages_"+g);
-  try{return raw?JSON.parse(raw):[]}catch{return []}
+  try{if(raw)return JSON.parse(raw)}catch{}
+  const legacyRaw=await kv.get("group_state_"+g);
+  try{
+    const legacy=legacyRaw?JSON.parse(legacyRaw):{},messages=(Array.isArray(legacy.messages)?legacy.messages:[]).map(cleanMessage).filter(Boolean);
+    if(messages.length)await kv.put("group_messages_"+g,JSON.stringify(messages));
+    return messages;
+  }catch{return []}
 }
 export async function onRequestGet(context){
   const admin=await isAdmin(context.request,context.env);if(!admin){const access=await gate(context);if(!access.ok)return json({error:access.error},403)}

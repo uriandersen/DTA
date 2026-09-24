@@ -69,6 +69,23 @@ async function syncMessages(messages){
  }catch(e){console.warn('Message sync failed',e)}
  return normalizeMessages(getState().messages||messages);
 }
+function visibleMessageIds(){return new Set([...document.querySelectorAll('.chat .msg[data-message-id]')].map(x=>x.dataset.messageId))}
+function appendSharedMessage(x){
+ const chat=$('.chat');if(!chat||!x||!x.id||visibleMessageIds().has(x.id))return;
+ const el=document.createElement('div');el.className='msg '+(x.role==='assistant'?'ai':'user');el.dataset.messageId=x.id;
+ if(x.role==='assistant'){const phase=x.phase||'DTA';const clean=phase==='PROTOTYPE'?String(x.text||'').replace(/\*\*?#\s*\d+\s*\/\s*\d+\*\*?\s*/g,'').replace(/#\s*\d+\s*\/\s*\d+\s*/g,''):String(x.text||'');el.innerHTML='<span class="badge">'+escapeHtml(phase)+'</span><br><br><div class="md">'+renderMarkdown(clean)+'</div>'}else el.textContent=x.text||'';
+ chat.appendChild(el);chat.scrollTop=chat.scrollHeight;
+}
+async function pullShared(){
+ if(document.hidden)return;
+ try{
+  const r=await fetch('/api/group-messages?group='+encodeURIComponent(GROUP),{headers:sharedHeaders(),cache:'no-store'});
+  if(!r.ok)return;
+  const d=await r.json(),remote=normalizeMessages(d.messages||[]),local=normalizeMessages(getState().messages||[]);
+  const localIds=new Set(local.map(x=>x.id)),newOnes=remote.filter(x=>!localIds.has(x.id));
+  if(newOnes.length){localStorage.setItem(KEY,JSON.stringify({...getState(),messages:remote}));newOnes.forEach(appendSharedMessage)}
+ }catch(e){console.warn('Live sync unavailable',e)}
+}
 window.addEventListener('DOMContentLoaded',async()=>{
  await hydrateState();
  const pn=$('.project-name'), st=getState();
@@ -170,6 +187,10 @@ window.addEventListener('DOMContentLoaded',async()=>{
  }
  renderSaved();
  if(st.currentOutput)renderArtifact(st.currentOutput);
+ normalizeMessages(getState().messages||[]).forEach(appendSharedMessage);
+ const liveSync=setInterval(pullShared,3000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)pullShared()});
+ window.addEventListener('beforeunload',()=>clearInterval(liveSync));
  const send=$('.send'), ta=$('textarea'), protoProgress=$('.prototype-progress'); let activeController=null;
  function updatePrototypeProgress(text,phase){
   if(!protoProgress)return;
@@ -184,10 +205,10 @@ window.addEventListener('DOMContentLoaded',async()=>{
  }
  send.onclick=async()=>{
   if(activeController){activeController.abort();return}
-  const v=ta.value.trim();if(!v)return;const c=$('.chat');const m=document.createElement('div');m.className='msg user';m.textContent=v;c.appendChild(m);ta.value='';let h=normalizeMessages(getState().messages||[]);const userMessage={id:messageId(),role:'user',text:v,createdAt:Date.now()};h.push(userMessage);save({messages:h});h=await syncMessages([userMessage]);c.scrollTop=c.scrollHeight;
+  const v=ta.value.trim();if(!v)return;const c=$('.chat');const m=document.createElement('div');m.className='msg user';m.textContent=v;ta.value='';let h=normalizeMessages(getState().messages||[]);const userMessage={id:messageId(),role:'user',text:v,createdAt:Date.now()};m.dataset.messageId=userMessage.id;c.appendChild(m);h.push(userMessage);save({messages:h});h=await syncMessages([userMessage]);c.scrollTop=c.scrollHeight;
   activeController=new AbortController();send.innerHTML='<span class="stop-square">■</span>';send.setAttribute('aria-label','Stop');send.classList.add('stop');
   const wait=document.createElement('div');wait.className='msg ai';wait.innerHTML='<span class="thinking" aria-label="DTA arbejder"><i></i><i></i><i></i></span>';c.appendChild(wait);
-  try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json',...sharedHeaders()},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:materials,savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');updatePrototypeProgress(data.text,phase);const cleanText=phase==='PROTOTYPE'?data.text.replace(/\*\*?#\s*\d+\s*\/\s*\d+\*\*?\s*/g,'').replace(/#\s*\d+\s*\/\s*\d+\s*/g,''):data.text;wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(cleanText)+'</div>';const assistantMessage={id:messageId(),role:'assistant',text:data.text,phase,createdAt:Date.now()};h.push(assistantMessage);save({messages:h});h=await syncMessages([assistantMessage]);if(data.artifact)renderArtifact(data.artifact);}
+  try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json',...sharedHeaders()},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:materials,savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');updatePrototypeProgress(data.text,phase);const cleanText=phase==='PROTOTYPE'?data.text.replace(/\*\*?#\s*\d+\s*\/\s*\d+\*\*?\s*/g,'').replace(/#\s*\d+\s*\/\s*\d+\s*/g,''):data.text;wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(cleanText)+'</div>';const assistantMessage={id:messageId(),role:'assistant',text:data.text,phase,createdAt:Date.now()};wait.dataset.messageId=assistantMessage.id;h.push(assistantMessage);save({messages:h});h=await syncMessages([assistantMessage]);if(data.artifact)renderArtifact(data.artifact);}
   catch(err){if(err.name==='AbortError'){wait.remove();toast('Stoppet')}else{wait.textContent='DTA kunne ikke svare endnu: '+err.message}}
   finally{activeController=null;send.innerHTML='<span class="send-arrow">➜</span>';send.setAttribute('aria-label','Send');send.classList.remove('stop');c.scrollTop=c.scrollHeight}
  };

@@ -22,7 +22,7 @@ if(RESET){
 const $=s=>document.querySelector(s);
 function toast(t){let e=$('#toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;right:24px;bottom:24px;background:#202020;color:#fff;padding:10px 14px;border-radius:5px;font:12px Aptos,Arial;z-index:99';document.body.appendChild(e)}e.textContent=t;setTimeout(()=>e.remove(),1400)}
 function getState(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {}}}
-let syncTimer=null,hydrated=false,serverVersion=0,syncInFlight=false,syncQueued=false;
+let syncTimer=null,hydrated=false,serverVersion=0,syncInFlight=false,syncQueued=false,pendingPatch={};
 async function hydrateState(){
  try{
   const r=await fetch('/api/group-state?group='+encodeURIComponent(GROUP),{headers:sharedHeaders()});
@@ -34,32 +34,32 @@ async function hydrateState(){
  hydrated=true;
 }
 async function pushState(){
- if(!hydrated)return;
+ if(!hydrated||!Object.keys(pendingPatch).length)return;
  if(syncInFlight){syncQueued=true;return}
  syncInFlight=true;
+ const patch={...pendingPatch};
  try{
   const local=getState();
   const r=await fetch('/api/group-state?group='+encodeURIComponent(GROUP),{method:'PUT',headers:{'content-type':'application/json',...sharedHeaders()},body:JSON.stringify({...local,baseVersion:serverVersion})});
   const d=await r.json().catch(()=>({}));
   if(r.status===409&&d.conflict){
    const remote=d.state||{};
-   const localNow=getState();
-   const merged={...remote,...localNow,serverVersion:Number(d.version||remote.serverVersion||0)};
    serverVersion=Number(d.version||remote.serverVersion||0);
-   localStorage.setItem(KEY,JSON.stringify(merged));
+   localStorage.setItem(KEY,JSON.stringify({...remote,...patch,serverVersion}));
    syncQueued=true;
   }else if(r.ok){
    serverVersion=Number(d.version||serverVersion+1);
+   for(const k of Object.keys(patch))if(JSON.stringify(pendingPatch[k])===JSON.stringify(patch[k]))delete pendingPatch[k];
    localStorage.setItem(KEY,JSON.stringify({...getState(),serverVersion,serverUpdatedAt:d.serverUpdatedAt||Date.now()}));
   }else console.warn('State sync failed',d.error||r.status);
  }catch(e){console.warn('State sync failed',e)}
  finally{
   syncInFlight=false;
-  if(syncQueued){syncQueued=false;pushState()}
+  if(syncQueued||Object.keys(pendingPatch).length){syncQueued=false;pushState()}
  }
 }
 function syncState(){if(!hydrated)return;clearTimeout(syncTimer);syncTimer=setTimeout(pushState,250)}
-function save(p){localStorage.setItem(KEY,JSON.stringify({...getState(),...p}));syncState()}
+function save(p){pendingPatch={...pendingPatch,...p};localStorage.setItem(KEY,JSON.stringify({...getState(),...p}));syncState()}
 window.dtaSavePhase=phase=>save({activePhase:phase});
 function applyPhase(phase){if(!phase)return;const el=[...document.querySelectorAll('.phase')].find(x=>x.querySelector('.phase-head span')?.textContent?.trim()===phase);if(el){document.querySelectorAll('.phase').forEach(x=>x.classList.remove('active'));el.classList.add('active')}}
 const messageId=()=>crypto.randomUUID?crypto.randomUUID():'m-'+Date.now()+'-'+Math.random().toString(36).slice(2);

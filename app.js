@@ -96,6 +96,7 @@ async function pullShared(){
    const localIds=new Set(local.map(x=>x.id)),newOnes=remote.filter(x=>!localIds.has(x.id));
    if(newOnes.length){localStorage.setItem(KEY,JSON.stringify({...getState(),messages:remote}));newOnes.forEach(appendSharedMessage)}
   }
+  await refreshCourseMaterials();
   if(sr.ok){
    const sd=await sr.json(),remote=sd.state||{};
    if(Number(sd.version||0)>serverVersion&&!syncInFlight){
@@ -142,10 +143,19 @@ window.addEventListener('DOMContentLoaded',async()=>{
  const addBtn=$('#materials .add');
  const materialInput=document.createElement('input');materialInput.type='file';materialInput.multiple=true;materialInput.hidden=true;document.body.appendChild(materialInput);
  addBtn.onclick=()=>materialInput.click();
- let materials=(st.materials||[]).map(x=>typeof x==='string'?{name:x}:x);
+ let materials=(st.materials||[]).map(x=>typeof x==='string'?{name:x}:x),courseMaterials=[];
  const addPreloaded=(title,meta)=>{const pre=document.createElement('div');pre.className='material preloaded';pre.innerHTML='<div class="file"><b></b><small></small></div>';pre.querySelector('b').textContent=title;pre.querySelector('small').textContent=meta;addBtn.parentElement.insertBefore(pre,addBtn)};
  addPreloaded('CASE · Den usynlige gæld','Fælles case · pre-loadet');
  if(GROUP==='1'||GROUP==='2') addPreloaded('Line · brugerinterview','Rå empiri · pre-loadet · '+GROUP_LABEL);
+ async function refreshCourseMaterials(){
+  try{
+   const r=await fetch('/api/course-materials',{headers:sharedHeaders(),cache:'no-store'});if(!r.ok)return;
+   const d=await r.json();courseMaterials=Array.isArray(d.materials)?d.materials:[];
+   document.querySelectorAll('#materials .material.course-shared').forEach(x=>x.remove());
+   courseMaterials.forEach(item=>{const el=document.createElement('div');el.className='material preloaded course-shared';el.innerHTML='<div class="file"><b></b><small></small></div>';el.querySelector('b').textContent=item.name;el.querySelector('small').textContent='Fælles materiale · alle grupper';addBtn.parentElement.insertBefore(el,addBtn)});
+  }catch(e){console.warn('Shared course materials unavailable',e)}
+ }
+ await refreshCourseMaterials();
  function persist(){save({materials})}
  function addMaterial(item){
   const el=document.createElement('div');el.className='material';el.dataset.name=item.name;
@@ -253,7 +263,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   const v=ta.value.trim();if(!v)return;const c=$('.chat');const m=document.createElement('div');m.className='msg user';m.textContent=v;ta.value='';let h=normalizeMessages(getState().messages||[]);const userMessage={id:messageId(),role:'user',text:v,createdAt:Date.now()};m.dataset.messageId=userMessage.id;c.appendChild(m);h.push(userMessage);localStorage.setItem(KEY,JSON.stringify({...getState(),messages:h}));h=await syncMessages([userMessage]);c.scrollTop=c.scrollHeight;
   activeController=new AbortController();send.innerHTML='<span class="stop-square">■</span>';send.setAttribute('aria-label','Stop');send.classList.add('stop');
   const wait=document.createElement('div');wait.className='msg ai';wait.innerHTML='<span class="thinking" aria-label="DTA arbejder"><i></i><i></i><i></i></span>';c.appendChild(wait);
-  try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json',...sharedHeaders()},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:materials,savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');updatePrototypeProgress(data.text,phase);const cleanText=phase==='PROTOTYPE'?data.text.replace(/\*\*?#\s*\d+\s*\/\s*\d+\*\*?\s*/g,'').replace(/#\s*\d+\s*\/\s*\d+\s*/g,''):data.text;wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(cleanText)+'</div>';const assistantMessage={id:messageId(),role:'assistant',text:data.text,phase,createdAt:Date.now()};wait.dataset.messageId=assistantMessage.id;h.push(assistantMessage);localStorage.setItem(KEY,JSON.stringify({...getState(),messages:h}));h=await syncMessages([assistantMessage]);if(data.artifact)renderArtifact(data.artifact);}
+  try{const phase=document.querySelector('.phase.active .phase-head span')?.textContent||'PROTOTYPE';const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json',...sharedHeaders()},signal:activeController.signal,body:JSON.stringify({message:v,phase,group:GROUP,projectName:pn.textContent.trim(),history:h.slice(-20),materials:[...courseMaterials,...materials],savedArtifacts:(getState().saved||[]).filter((_,i)=>(getState().activeSaved||[]).includes(i))})});const data=await r.json();if(!r.ok)throw new Error(data.error||'API-fejl');updatePrototypeProgress(data.text,phase);const cleanText=phase==='PROTOTYPE'?data.text.replace(/\*\*?#\s*\d+\s*\/\s*\d+\*\*?\s*/g,'').replace(/#\s*\d+\s*\/\s*\d+\s*/g,''):data.text;wait.innerHTML='<span class="badge">'+phase+'</span><br><br><div class="md">'+renderMarkdown(cleanText)+'</div>';const assistantMessage={id:messageId(),role:'assistant',text:data.text,phase,createdAt:Date.now()};wait.dataset.messageId=assistantMessage.id;h.push(assistantMessage);localStorage.setItem(KEY,JSON.stringify({...getState(),messages:h}));h=await syncMessages([assistantMessage]);if(data.artifact)renderArtifact(data.artifact);}
   catch(err){if(err.name==='AbortError'){wait.remove();toast('Stoppet')}else{wait.textContent='DTA kunne ikke svare endnu: '+err.message}}
   finally{activeController=null;send.innerHTML='<span class="send-arrow">➜</span>';send.setAttribute('aria-label','Send');send.classList.remove('stop');c.scrollTop=c.scrollHeight}
  };

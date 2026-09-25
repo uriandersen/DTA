@@ -93,8 +93,12 @@ async function pullShared(){
   ]);
   if(mr.ok){
    const d=await mr.json(),remote=normalizeMessages(d.messages||[]),local=normalizeMessages(getState().messages||[]);
-   const localIds=new Set(local.map(x=>x.id)),newOnes=remote.filter(x=>!localIds.has(x.id));
-   if(newOnes.length){localStorage.setItem(KEY,JSON.stringify({...getState(),messages:remote}));newOnes.forEach(appendSharedMessage)}
+   const localIds=new Set(local.map(x=>x.id)),remoteIds=new Set(remote.map(x=>x.id)),newOnes=remote.filter(x=>!localIds.has(x.id)),unsynced=local.filter(x=>!remoteIds.has(x.id));
+   const byId=new Map(remote.map(x=>[x.id,x]));local.forEach(x=>{if(!byId.has(x.id))byId.set(x.id,x)});
+   const merged=[...byId.values()].sort((a,b)=>a.createdAt-b.createdAt);
+   localStorage.setItem(KEY,JSON.stringify({...getState(),messages:merged}));
+   newOnes.forEach(appendSharedMessage);
+   if(unsynced.length)syncMessages(unsynced);
   }
   await refreshCourseMaterials();
   if(sr.ok){
@@ -128,8 +132,15 @@ window.addEventListener('DOMContentLoaded',async()=>{
  await hydrateState();
  const pn=$('.project-name'), st=getState();
  try{
-  const mr=await fetch('/api/group-messages?group='+encodeURIComponent(GROUP),{headers:sharedHeaders()});
-  if(mr.ok){const md=await mr.json();if(Array.isArray(md.messages))localStorage.setItem(KEY,JSON.stringify({...getState(),messages:normalizeMessages(md.messages)}))}
+  const mr=await fetch('/api/group-messages?group='+encodeURIComponent(GROUP),{headers:sharedHeaders(),cache:'no-store'});
+  if(mr.ok){
+   const md=await mr.json(),remote=normalizeMessages(md.messages||[]),local=normalizeMessages(getState().messages||[]);
+   const byId=new Map(remote.map(x=>[x.id,x]));local.forEach(x=>{if(!byId.has(x.id))byId.set(x.id,x)});
+   const merged=[...byId.values()].sort((a,b)=>a.createdAt-b.createdAt);
+   localStorage.setItem(KEY,JSON.stringify({...getState(),messages:merged}));
+   const remoteIds=new Set(remote.map(x=>x.id)),unsynced=local.filter(x=>!remoteIds.has(x.id));
+   if(unsynced.length)await syncMessages(unsynced);
+  }
  }catch(e){console.warn('Shared messages unavailable',e)}
  pn.textContent=(st.projectName||'Design Thinking-projekt')+' · '+GROUP_LABEL;
  applyPhase(st.activePhase);

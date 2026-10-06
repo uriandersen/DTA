@@ -103,9 +103,10 @@ async function pullShared(){
   await refreshCourseMaterials();
   if(sr.ok){
    const sd=await sr.json(),remote=sd.state||{};
-   if(Number(sd.version||0)>serverVersion&&!syncInFlight){
+   const localBefore=getState(),isReset=Number(remote.resetAt||0)>Number(localBefore.resetAt||0);
+   if((Number(sd.version||0)>serverVersion||isReset)&&!syncInFlight){
     serverVersion=Number(sd.version||0);
-    const local=getState(),isReset=Number(remote.resetAt||0)>Number(local.resetAt||0);
+    const local=localBefore;
     const merged=isReset?{...remote,messages:[]}:{...local,...remote,messages:local.messages||[]};
     localStorage.setItem(KEY,JSON.stringify(merged));
     if(isReset){

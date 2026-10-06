@@ -157,7 +157,6 @@ window.addEventListener('DOMContentLoaded',async()=>{
  let materials=(st.materials||[]).map(x=>typeof x==='string'?{name:x}:x),courseMaterials=[];
  const addPreloaded=(title,meta)=>{const pre=document.createElement('div');pre.className='material preloaded';pre.innerHTML='<div class="file"><b></b><small></small></div>';pre.querySelector('b').textContent=title;pre.querySelector('small').textContent=meta;addBtn.parentElement.insertBefore(pre,addBtn)};
  addPreloaded('CASE · Den usynlige gæld','Fælles case · pre-loadet');
- if(GROUP==='1'||GROUP==='2') addPreloaded('Line · brugerinterview','Rå empiri · pre-loadet · '+GROUP_LABEL);
  async function refreshCourseMaterials(){
   try{
    const r=await fetch('/api/course-materials',{headers:sharedHeaders(),cache:'no-store'});if(!r.ok)return;

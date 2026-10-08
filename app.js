@@ -11,7 +11,7 @@ const GROUP_LABEL='Gruppe '+GROUP;
 const API='/api/chat';
 const ADMIN_MODE=new URLSearchParams(location.search).get('admin')==='1';
 const ADMIN_KEY=ADMIN_MODE?sessionStorage.getItem('dta-admin-key')||'':'';
-const sharedHeaders=()=>{if(!ADMIN_KEY)return {};try{new Headers({'authorization':'Bearer '+ADMIN_KEY});return {'authorization':'Bearer '+ADMIN_KEY}}catch(e){console.warn('Invalid admin authorization header; using course access',e);return {}}};
+const sharedHeaders=()=>{if(!ADMIN_KEY)return {};const key=String(ADMIN_KEY).trim();return key.includes('\n')||key.includes('\r')?{}:{authorization:'Bearer '+key}};
 const RESET=new URLSearchParams(location.search).get('reset')==='1';
 if(RESET){
   localStorage.removeItem(KEY);
